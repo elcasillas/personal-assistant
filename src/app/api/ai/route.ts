@@ -1,5 +1,5 @@
 import Anthropic from "@anthropic-ai/sdk";
-import { getObject } from "@/lib/r2";
+import { d1Query } from "@/lib/d1";
 
 const anthropic = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY });
 
@@ -7,8 +7,8 @@ export async function POST(req: Request) {
   const { messages } = await req.json();
 
   const [tasks, notes] = await Promise.all([
-    getObject("data/tasks.json", []),
-    getObject("data/notes.json", []),
+    d1Query("SELECT id, title, status, priority, due_date FROM tasks ORDER BY created_at DESC LIMIT 50"),
+    d1Query("SELECT id, title, content, tags FROM notes ORDER BY updated_at DESC LIMIT 20"),
   ]);
 
   // eslint-disable-next-line @typescript-eslint/no-explicit-any

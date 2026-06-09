@@ -1,60 +1,112 @@
 import { NextRequest, NextResponse } from "next/server";
 import { v4 as uuidv4 } from "uuid";
-import { getObject, putObject } from "@/lib/r2";
+import { d1Query, d1Execute } from "@/lib/d1";
 import type { Contact } from "@/lib/types";
 
-const KEY = "data/contacts.json";
+type ContactRow = {
+  id: string;
+  name: string;
+  email: string | null;
+  phone: string | null;
+  company: string | null;
+  title: string | null;
+  notes: string | null;
+  created_at: string;
+  updated_at: string;
+};
+
+function rowToContact(row: ContactRow): Contact {
+  return {
+    id: row.id,
+    name: row.name,
+    email: row.email ?? undefined,
+    phone: row.phone ?? undefined,
+    company: row.company ?? undefined,
+    title: row.title ?? undefined,
+    notes: row.notes ?? undefined,
+    createdAt: row.created_at,
+    updatedAt: row.updated_at,
+  };
+}
 
 export async function GET() {
-  const contacts = await getObject<Contact[]>(KEY, []);
-  return NextResponse.json(contacts);
+  try {
+    const rows = await d1Query<ContactRow>(
+      "SELECT * FROM contacts ORDER BY name ASC"
+    );
+    return NextResponse.json(rows.map(rowToContact));
+  } catch (err) {
+    return NextResponse.json({ error: String(err) }, { status: 500 });
+  }
 }
 
 export async function POST(req: NextRequest) {
-  const body = await req.json();
-  const contacts = await getObject<Contact[]>(KEY, []);
-  const now = new Date().toISOString();
-  const contact: Contact = {
-    id: uuidv4(),
-    name: body.name,
-    email: body.email,
-    phone: body.phone,
-    company: body.company,
-    title: body.title,
-    notes: body.notes,
-    createdAt: now,
-    updatedAt: now,
-  };
-  contacts.push(contact);
-  await putObject(KEY, contacts);
-  return NextResponse.json(contact, { status: 201 });
+  try {
+    const body = await req.json();
+    const now = new Date().toISOString();
+    const id = uuidv4();
+
+    await d1Execute(
+      `INSERT INTO contacts (id, name, email, phone, company, title, notes, created_at, updated_at)
+       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+      [
+        id,
+        body.name,
+        body.email ?? null,
+        body.phone ?? null,
+        body.company ?? null,
+        body.title ?? null,
+        body.notes ?? null,
+        now,
+        now,
+      ]
+    );
+
+    const rows = await d1Query<ContactRow>("SELECT * FROM contacts WHERE id = ?", [id]);
+    return NextResponse.json(rowToContact(rows[0]), { status: 201 });
+  } catch (err) {
+    return NextResponse.json({ error: String(err) }, { status: 500 });
+  }
 }
 
 export async function PUT(req: NextRequest) {
-  const body = await req.json();
-  const contacts = await getObject<Contact[]>(KEY, []);
-  const index = contacts.findIndex((c) => c.id === body.id);
-  if (index === -1) {
-    return NextResponse.json({ error: "Contact not found" }, { status: 404 });
+  try {
+    const body = await req.json();
+    const now = new Date().toISOString();
+
+    await d1Execute(
+      `UPDATE contacts
+       SET name = ?, email = ?, phone = ?, company = ?, title = ?, notes = ?, updated_at = ?
+       WHERE id = ?`,
+      [
+        body.name,
+        body.email ?? null,
+        body.phone ?? null,
+        body.company ?? null,
+        body.title ?? null,
+        body.notes ?? null,
+        now,
+        body.id,
+      ]
+    );
+
+    const rows = await d1Query<ContactRow>("SELECT * FROM contacts WHERE id = ?", [body.id]);
+    if (!rows.length) return NextResponse.json({ error: "Not found" }, { status: 404 });
+    return NextResponse.json(rowToContact(rows[0]));
+  } catch (err) {
+    return NextResponse.json({ error: String(err) }, { status: 500 });
   }
-  const updated: Contact = {
-    ...contacts[index],
-    ...body,
-    updatedAt: new Date().toISOString(),
-  };
-  contacts[index] = updated;
-  await putObject(KEY, contacts);
-  return NextResponse.json(updated);
 }
 
 export async function DELETE(req: NextRequest) {
-  const { searchParams } = new URL(req.url);
-  const id = searchParams.get("id");
-  if (!id) {
-    return NextResponse.json({ error: "Missing id" }, { status: 400 });
+  try {
+    const { searchParams } = new URL(req.url);
+    const id = searchParams.get("id");
+    if (!id) return NextResponse.json({ error: "Missing id" }, { status: 400 });
+
+    await d1Execute("DELETE FROM contacts WHERE id = ?", [id]);
+    return NextResponse.json({ success: true });
+  } catch (err) {
+    return NextResponse.json({ error: String(err) }, { status: 500 });
   }
-  const contacts = await getObject<Contact[]>(KEY, []);
-  const filtered = contacts.filter((c) => c.id !== id);
-  await putObject(KEY, filtered);
-  return NextResponse.json({ success: true });
 }

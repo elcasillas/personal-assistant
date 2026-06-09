@@ -1,57 +1,98 @@
 import { NextRequest, NextResponse } from "next/server";
 import { v4 as uuidv4 } from "uuid";
-import { getObject, putObject } from "@/lib/r2";
+import { d1Query, d1Execute } from "@/lib/d1";
 import type { Note } from "@/lib/types";
 
-const KEY = "data/notes.json";
+type NoteRow = {
+  id: string;
+  title: string;
+  content: string;
+  tags: string;
+  created_at: string;
+  updated_at: string;
+};
+
+function rowToNote(row: NoteRow): Note {
+  return {
+    id: row.id,
+    title: row.title,
+    content: row.content,
+    tags: JSON.parse(row.tags ?? "[]"),
+    createdAt: row.created_at,
+    updatedAt: row.updated_at,
+  };
+}
 
 export async function GET() {
-  const notes = await getObject<Note[]>(KEY, []);
-  return NextResponse.json(notes);
+  try {
+    const rows = await d1Query<NoteRow>(
+      "SELECT * FROM notes ORDER BY updated_at DESC"
+    );
+    return NextResponse.json(rows.map(rowToNote));
+  } catch (err) {
+    return NextResponse.json({ error: String(err) }, { status: 500 });
+  }
 }
 
 export async function POST(req: NextRequest) {
-  const body = await req.json();
-  const notes = await getObject<Note[]>(KEY, []);
-  const now = new Date().toISOString();
-  const note: Note = {
-    id: uuidv4(),
-    title: body.title,
-    content: body.content ?? "",
-    tags: body.tags ?? [],
-    createdAt: now,
-    updatedAt: now,
-  };
-  notes.push(note);
-  await putObject(KEY, notes);
-  return NextResponse.json(note, { status: 201 });
+  try {
+    const body = await req.json();
+    const now = new Date().toISOString();
+    const id = uuidv4();
+
+    await d1Execute(
+      `INSERT INTO notes (id, title, content, tags, created_at, updated_at)
+       VALUES (?, ?, ?, ?, ?, ?)`,
+      [
+        id,
+        body.title,
+        body.content ?? "",
+        JSON.stringify(body.tags ?? []),
+        now,
+        now,
+      ]
+    );
+
+    const rows = await d1Query<NoteRow>("SELECT * FROM notes WHERE id = ?", [id]);
+    return NextResponse.json(rowToNote(rows[0]), { status: 201 });
+  } catch (err) {
+    return NextResponse.json({ error: String(err) }, { status: 500 });
+  }
 }
 
 export async function PUT(req: NextRequest) {
-  const body = await req.json();
-  const notes = await getObject<Note[]>(KEY, []);
-  const index = notes.findIndex((n) => n.id === body.id);
-  if (index === -1) {
-    return NextResponse.json({ error: "Note not found" }, { status: 404 });
+  try {
+    const body = await req.json();
+    const now = new Date().toISOString();
+
+    await d1Execute(
+      `UPDATE notes SET title = ?, content = ?, tags = ?, updated_at = ? WHERE id = ?`,
+      [
+        body.title,
+        body.content,
+        JSON.stringify(body.tags ?? []),
+        now,
+        body.id,
+      ]
+    );
+
+    const rows = await d1Query<NoteRow>("SELECT * FROM notes WHERE id = ?", [body.id]);
+    if (!rows.length) return NextResponse.json({ error: "Not found" }, { status: 404 });
+    return NextResponse.json(rowToNote(rows[0]));
+  } catch (err) {
+    return NextResponse.json({ error: String(err) }, { status: 500 });
   }
-  const updated: Note = {
-    ...notes[index],
-    ...body,
-    updatedAt: new Date().toISOString(),
-  };
-  notes[index] = updated;
-  await putObject(KEY, notes);
-  return NextResponse.json(updated);
 }
 
 export async function DELETE(req: NextRequest) {
-  const { searchParams } = new URL(req.url);
-  const id = searchParams.get("id");
-  if (!id) {
-    return NextResponse.json({ error: "Missing id" }, { status: 400 });
+  try {
+    const { searchParams } = new URL(req.url);
+    const id = searchParams.get("id");
+    if (!id) return NextResponse.json({ error: "Missing id" }, { status: 400 });
+
+    await d1Execute("DELETE FROM notes WHERE id = ?", [id]);
+    return NextResponse.json({ success: true });
+  } catch (err) {
+    return NextResponse.json({ error: String(err) }, { status: 500 });
   }
-  const notes = await getObject<Note[]>(KEY, []);
-  const filtered = notes.filter((n) => n.id !== id);
-  await putObject(KEY, filtered);
-  return NextResponse.json({ success: true });
 }
