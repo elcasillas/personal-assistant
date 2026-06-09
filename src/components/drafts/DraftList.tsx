@@ -24,7 +24,10 @@ export default function DraftList() {
     try {
       setLoading(true);
       const res = await fetch("/api/drafts");
-      if (!res.ok) throw new Error("Failed to fetch drafts");
+      if (!res.ok) {
+        const body = await res.json().catch(() => ({}));
+        throw new Error(body.error ?? "Failed to fetch drafts");
+      }
       const data = await res.json();
       setDrafts(data);
     } catch (err) {

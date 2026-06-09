@@ -6,7 +6,7 @@ const openai = new OpenAI({
   apiKey: process.env.OPENROUTER_API_KEY,
   defaultHeaders: {
     "HTTP-Referer": "http://localhost:3000",
-    "X-Title": "Personal Assistant",
+    "X-Title": "Linda",
   },
 });
 
@@ -20,7 +20,7 @@ export async function POST(req: Request) {
     d1Query("SELECT id, title, content, tags FROM notes ORDER BY updated_at DESC LIMIT 20"),
   ]);
 
-  const systemPrompt = `You are a personal executive assistant with access to the user's workspace data.
+  const systemPrompt = `Your name is Linda. You are a personal executive assistant with access to the user's workspace data.
 
 Current Tasks:
 ${JSON.stringify(tasks, null, 2)}

@@ -17,7 +17,10 @@ export default function NoteList() {
     try {
       setLoading(true);
       const res = await fetch("/api/notes");
-      if (!res.ok) throw new Error("Failed to fetch notes");
+      if (!res.ok) {
+        const body = await res.json().catch(() => ({}));
+        throw new Error(body.error ?? "Failed to fetch notes");
+      }
       const data = await res.json();
       setNotes(data);
     } catch (err) {

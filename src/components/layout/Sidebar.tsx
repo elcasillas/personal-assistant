@@ -39,10 +39,10 @@ export default function Sidebar({
       <div className="px-4 py-5 border-b border-slate-800">
         <div className="flex items-center gap-3">
           <div className="w-8 h-8 bg-indigo-600 rounded-lg flex items-center justify-center shrink-0">
-            <span className="text-white text-sm font-bold">PA</span>
+            <span className="text-white text-sm font-bold">L</span>
           </div>
           <span className="text-white font-semibold text-sm tracking-wide">
-            Personal Assistant
+            Linda
           </span>
         </div>
       </div>
@@ -80,7 +80,7 @@ export default function Sidebar({
           }`}
         >
           <Bot className="w-4 h-4 shrink-0" />
-          AI Assistant
+          Linda
         </button>
 
         {/* Gmail - coming soon */}

@@ -16,7 +16,10 @@ export default function ContactList() {
     try {
       setLoading(true);
       const res = await fetch("/api/contacts");
-      if (!res.ok) throw new Error("Failed to fetch contacts");
+      if (!res.ok) {
+        const body = await res.json().catch(() => ({}));
+        throw new Error(body.error ?? "Failed to fetch contacts");
+      }
       const data = await res.json();
       setContacts(data);
     } catch (err) {

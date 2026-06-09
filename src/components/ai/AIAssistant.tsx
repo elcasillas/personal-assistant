@@ -85,7 +85,7 @@ export default function AIAssistant({ onClose }: AIAssistantProps) {
           <div className="w-7 h-7 bg-indigo-600 rounded-lg flex items-center justify-center">
             <Bot className="w-4 h-4 text-white" />
           </div>
-          <span className="font-semibold text-slate-900 text-sm">AI Assistant</span>
+          <span className="font-semibold text-slate-900 text-sm">Linda</span>
         </div>
         <button
           onClick={onClose}

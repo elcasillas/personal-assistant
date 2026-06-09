@@ -22,7 +22,10 @@ export default function FollowUpList() {
     try {
       setLoading(true);
       const res = await fetch("/api/followups");
-      if (!res.ok) throw new Error("Failed to fetch follow-ups");
+      if (!res.ok) {
+        const body = await res.json().catch(() => ({}));
+        throw new Error(body.error ?? "Failed to fetch follow-ups");
+      }
       const data = await res.json();
       setFollowUps(data);
     } catch (err) {

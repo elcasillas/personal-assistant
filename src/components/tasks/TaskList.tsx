@@ -35,7 +35,10 @@ export default function TaskList() {
     try {
       setLoading(true);
       const res = await fetch("/api/tasks");
-      if (!res.ok) throw new Error("Failed to fetch tasks");
+      if (!res.ok) {
+        const body = await res.json().catch(() => ({}));
+        throw new Error(body.error ?? "Failed to fetch tasks");
+      }
       const data = await res.json();
       setTasks(data);
     } catch (err) {
