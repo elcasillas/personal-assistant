@@ -13,6 +13,10 @@
 /.next/
 /out/
 
+# cloudflare
+/.open-next/
+/.worker-next/
+
 # production
 /build
 
