@@ -1,7 +1,16 @@
-import Anthropic from "@anthropic-ai/sdk";
+import OpenAI from "openai";
 import { d1Query } from "@/lib/d1";
 
-const anthropic = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY });
+const openai = new OpenAI({
+  baseURL: "https://openrouter.ai/api/v1",
+  apiKey: process.env.OPENROUTER_API_KEY,
+  defaultHeaders: {
+    "HTTP-Referer": "http://localhost:3000",
+    "X-Title": "Personal Assistant",
+  },
+});
+
+const MODEL = process.env.OPENROUTER_MODEL ?? "anthropic/claude-opus-4";
 
 export async function POST(req: Request) {
   const { messages } = await req.json();
@@ -11,12 +20,7 @@ export async function POST(req: Request) {
     d1Query("SELECT id, title, content, tags FROM notes ORDER BY updated_at DESC LIMIT 20"),
   ]);
 
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const stream = (anthropic.messages as any).stream({
-    model: "claude-opus-4-8",
-    max_tokens: 4096,
-    thinking: { type: "adaptive" },
-    system: `You are a personal executive assistant with access to the user's workspace data.
+  const systemPrompt = `You are a personal executive assistant with access to the user's workspace data.
 
 Current Tasks:
 ${JSON.stringify(tasks, null, 2)}
@@ -24,20 +28,23 @@ ${JSON.stringify(tasks, null, 2)}
 Recent Notes:
 ${JSON.stringify(notes, null, 2)}
 
-Help the user with tasks, notes, follow-ups, contacts, and drafts. Be concise and professional.`,
-    messages,
+Help the user with tasks, notes, follow-ups, contacts, and drafts. Be concise and professional.`;
+
+  const stream = await openai.chat.completions.create({
+    model: MODEL,
+    stream: true,
+    messages: [
+      { role: "system", content: systemPrompt },
+      ...messages,
+    ],
   });
 
   const encoder = new TextEncoder();
   const readable = new ReadableStream({
     async start(controller) {
-      for await (const event of stream) {
-        if (
-          event.type === "content_block_delta" &&
-          event.delta.type === "text_delta"
-        ) {
-          controller.enqueue(encoder.encode(event.delta.text));
-        }
+      for await (const chunk of stream) {
+        const text = chunk.choices[0]?.delta?.content ?? "";
+        if (text) controller.enqueue(encoder.encode(text));
       }
       controller.close();
     },
