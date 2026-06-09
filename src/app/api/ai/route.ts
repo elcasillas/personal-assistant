@@ -1,18 +1,19 @@
 import OpenAI from "openai";
 import { d1Query } from "@/lib/d1";
 
-const openai = new OpenAI({
-  baseURL: "https://openrouter.ai/api/v1",
-  apiKey: process.env.OPENROUTER_API_KEY,
-  defaultHeaders: {
-    "HTTP-Referer": "http://localhost:3000",
-    "X-Title": "Linda",
-  },
-});
-
-const MODEL = process.env.OPENROUTER_MODEL ?? "anthropic/claude-opus-4";
+export const dynamic = "force-dynamic";
 
 export async function POST(req: Request) {
+  const openai = new OpenAI({
+    baseURL: "https://openrouter.ai/api/v1",
+    apiKey: process.env.OPENROUTER_API_KEY,
+    defaultHeaders: {
+      "HTTP-Referer": "http://localhost:3000",
+      "X-Title": "Linda",
+    },
+  });
+
+  const model = process.env.OPENROUTER_MODEL ?? "anthropic/claude-opus-4";
   const { messages } = await req.json();
 
   const [tasks, notes] = await Promise.all([
@@ -31,7 +32,7 @@ ${JSON.stringify(notes, null, 2)}
 Help the user with tasks, notes, follow-ups, contacts, and drafts. Be concise and professional.`;
 
   const stream = await openai.chat.completions.create({
-    model: MODEL,
+    model,
     stream: true,
     messages: [
       { role: "system", content: systemPrompt },
