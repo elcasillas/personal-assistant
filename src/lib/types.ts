@@ -63,3 +63,12 @@ export interface ChatMessage {
 }
 
 export type Section = 'tasks' | 'notes' | 'contacts' | 'followups' | 'drafts';
+
+export interface User {
+  id: string;
+  name: string;
+  email: string;
+  role: "admin" | "user";
+  createdAt: string;
+  updatedAt: string;
+}

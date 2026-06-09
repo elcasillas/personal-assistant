@@ -9,7 +9,9 @@ import {
   Bot,
   Calendar,
   Settings,
+  LogOut,
 } from "lucide-react";
+import { useRouter } from "next/navigation";
 import type { Section } from "@/lib/types";
 
 interface SidebarProps {
@@ -33,6 +35,14 @@ export default function Sidebar({
   aiOpen,
   onToggleAI,
 }: SidebarProps) {
+  const router = useRouter();
+
+  async function handleLogout() {
+    await fetch("/api/auth/logout", { method: "POST" });
+    router.push("/login");
+    router.refresh();
+  }
+
   return (
     <aside className="w-[220px] min-h-screen bg-slate-900 flex flex-col shrink-0">
       {/* Logo */}
@@ -112,9 +122,21 @@ export default function Sidebar({
         </div>
 
         {/* Settings */}
-        <button className="w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium text-slate-400 hover:text-white hover:bg-slate-800 transition-colors">
+        <button
+          onClick={() => router.push("/settings")}
+          className="w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium text-slate-400 hover:text-white hover:bg-slate-800 transition-colors"
+        >
           <Settings className="w-4 h-4 shrink-0" />
           Settings
+        </button>
+
+        {/* Logout */}
+        <button
+          onClick={handleLogout}
+          className="w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium text-slate-400 hover:text-white hover:bg-slate-800 transition-colors"
+        >
+          <LogOut className="w-4 h-4 shrink-0" />
+          Sign out
         </button>
       </div>
     </aside>

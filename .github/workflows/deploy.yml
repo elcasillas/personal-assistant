@@ -30,6 +30,7 @@ jobs:
           echo "${{ secrets.CLOUDFLARE_API_TOKEN }}" | npx wrangler secret put CLOUDFLARE_API_TOKEN
           echo "${{ secrets.D1_DATABASE_ID }}" | npx wrangler secret put D1_DATABASE_ID
           echo "${{ secrets.OPENROUTER_API_KEY }}" | npx wrangler secret put OPENROUTER_API_KEY
+          echo "${{ secrets.AUTH_SECRET }}" | npx wrangler secret put AUTH_SECRET
 
       - name: Deploy
         env:
