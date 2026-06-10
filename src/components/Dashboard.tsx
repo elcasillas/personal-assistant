@@ -3,7 +3,7 @@
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import Sidebar from "./layout/Sidebar";
-import TaskList from "./tasks/TaskList";
+import TodoModule from "./todo/TodoModule";
 import NoteList from "./notes/NoteList";
 import ContactList from "./contacts/ContactList";
 import FollowUpList from "./followups/FollowUpList";
@@ -32,7 +32,7 @@ export default function DashboardClient({ defaultSection = "tasks" }: DashboardC
 
   function renderSection() {
     switch (activeSection) {
-      case "tasks":     return <TaskList />;
+      case "tasks":     return <TodoModule />;
       case "notes":     return <NoteList />;
       case "contacts":  return <ContactList />;
       case "followups": return <FollowUpList />;
@@ -50,10 +50,16 @@ export default function DashboardClient({ defaultSection = "tasks" }: DashboardC
         onToggleAI={() => setAiOpen((prev) => !prev)}
       />
 
-      <main className="flex-1 min-w-0 overflow-y-auto">
-        <div className="max-w-5xl mx-auto px-6 py-8">
-          {renderSection()}
-        </div>
+      <main className="flex-1 min-w-0 flex flex-col overflow-hidden">
+        {activeSection === "tasks" ? (
+          <div className="flex flex-1 min-h-0 px-6 py-4 overflow-hidden">
+            {renderSection()}
+          </div>
+        ) : (
+          <div className="max-w-5xl mx-auto px-6 py-8 w-full overflow-y-auto flex-1">
+            {renderSection()}
+          </div>
+        )}
       </main>
 
       {aiOpen && (

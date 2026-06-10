@@ -16,8 +16,14 @@ export async function POST(req: Request) {
   const model = process.env.OPENROUTER_MODEL ?? "anthropic/claude-opus-4";
   const { messages } = await req.json();
 
+  const userId = req.headers.get("x-user-id") ?? null;
+  const tasksSql = userId
+    ? "SELECT id, title, status, priority, due_date FROM todo_tasks WHERE user_id = ? ORDER BY created_at DESC LIMIT 50"
+    : "SELECT id, title, status, priority, due_date FROM todo_tasks ORDER BY created_at DESC LIMIT 50";
+  const taskParams = userId ? [userId] : [];
+
   const [tasks, notes] = await Promise.all([
-    d1Query("SELECT id, title, status, priority, due_date FROM tasks ORDER BY created_at DESC LIMIT 50"),
+    d1Query(tasksSql, taskParams),
     d1Query("SELECT id, title, content, tags FROM notes ORDER BY updated_at DESC LIMIT 20"),
   ]);
 
