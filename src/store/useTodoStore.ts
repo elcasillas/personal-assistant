@@ -120,7 +120,7 @@ interface TodoStore {
 function readShowDoneTasks(): boolean {
   try {
     const v = localStorage.getItem("todo_showDoneTasks");
-    return v !== null ? v === "true" : true;
+    return v !== null ? v === "true" : false;
   } catch {
     return true;
   }
@@ -134,7 +134,7 @@ export const useTodoStore = create<TodoStore>()((set, get) => ({
   filter: { search: "", owner: "", status: "", priority: "" },
   sort: { field: "", direction: "asc" },
   hiddenColumns: { owner: false, status: false, dueDate: false, priority: false, notes: false },
-  showDoneTasks: true,
+  showDoneTasks: false,
   loading: true,
   error: null,
   groupReorderError: null,

@@ -6,7 +6,7 @@ import Sidebar from "./layout/Sidebar";
 import TodoModule from "./todo/TodoModule";
 import NoteList from "./notes/NoteList";
 import ContactList from "./contacts/ContactList";
-import FollowUpList from "./followups/FollowUpList";
+import FollowUpModule from "./followups/FollowUpModule";
 import DraftList from "./drafts/DraftList";
 import UserSettings from "./settings/UserSettings";
 import AIAssistant from "./ai/AIAssistant";
@@ -35,7 +35,7 @@ export default function DashboardClient({ defaultSection = "tasks" }: DashboardC
       case "tasks":     return <TodoModule />;
       case "notes":     return <NoteList />;
       case "contacts":  return <ContactList />;
-      case "followups": return <FollowUpList />;
+      case "followups": return <FollowUpModule />;
       case "drafts":    return <DraftList />;
       case "settings":  return <UserSettings />;
     }
@@ -51,7 +51,7 @@ export default function DashboardClient({ defaultSection = "tasks" }: DashboardC
       />
 
       <main className="flex-1 min-w-0 flex flex-col overflow-hidden">
-        {activeSection === "tasks" ? (
+        {(activeSection === "tasks" || activeSection === "followups") ? (
           <div className="flex flex-1 min-h-0 px-6 py-4 overflow-hidden">
             {renderSection()}
           </div>

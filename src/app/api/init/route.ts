@@ -124,6 +124,50 @@ const tables = [
       updated_at TEXT NOT NULL
     )`,
   },
+  {
+    name: "followup_groups",
+    sql: `CREATE TABLE IF NOT EXISTS followup_groups (
+      id TEXT PRIMARY KEY,
+      user_id TEXT NOT NULL,
+      name TEXT NOT NULL,
+      color TEXT NOT NULL DEFAULT '#6366f1',
+      collapsed INTEGER NOT NULL DEFAULT 0,
+      sort_order INTEGER NOT NULL DEFAULT 0
+    )`,
+  },
+  {
+    name: "followup_items",
+    sql: `CREATE TABLE IF NOT EXISTS followup_items (
+      id TEXT PRIMARY KEY,
+      user_id TEXT NOT NULL,
+      subject TEXT NOT NULL,
+      contact_name TEXT NOT NULL DEFAULT '',
+      contact_id TEXT,
+      status TEXT NOT NULL DEFAULT 'not_started',
+      priority TEXT NOT NULL DEFAULT 'medium',
+      due_date TEXT,
+      notes TEXT NOT NULL DEFAULT '',
+      completed INTEGER NOT NULL DEFAULT 0,
+      group_id TEXT NOT NULL,
+      sort_order INTEGER NOT NULL DEFAULT 0,
+      created_at TEXT NOT NULL,
+      updated_at TEXT NOT NULL
+    )`,
+  },
+  {
+    name: "followup_updates",
+    sql: `CREATE TABLE IF NOT EXISTS followup_updates (
+      id TEXT PRIMARY KEY,
+      user_id TEXT NOT NULL,
+      followup_id TEXT NOT NULL,
+      author_name TEXT NOT NULL,
+      author_initials TEXT NOT NULL,
+      author_color TEXT NOT NULL,
+      content TEXT NOT NULL,
+      created_at TEXT NOT NULL,
+      updated_at TEXT NOT NULL
+    )`,
+  },
 ];
 
 export async function POST() {
