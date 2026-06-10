@@ -10,6 +10,7 @@ import {
   Calendar,
   Settings,
   LogOut,
+  X,
 } from "lucide-react";
 import Image from "next/image";
 import { useRouter } from "next/navigation";
@@ -21,6 +22,7 @@ interface SidebarProps {
   onSectionChange: (section: Section) => void;
   aiOpen: boolean;
   onToggleAI: () => void;
+  onClose?: () => void;
 }
 
 const navItems: { id: Section; label: string; icon: React.ComponentType<{ className?: string }> }[] = [
@@ -36,6 +38,7 @@ export default function Sidebar({
   onSectionChange,
   aiOpen,
   onToggleAI,
+  onClose,
 }: SidebarProps) {
   const router = useRouter();
   const { user } = useUser();
@@ -47,9 +50,9 @@ export default function Sidebar({
   }
 
   return (
-    <aside className="w-[220px] min-h-screen bg-slate-900 flex flex-col shrink-0">
-      {/* Logo */}
-      <div className="px-4 py-4 border-b border-slate-800">
+    <aside className="w-[220px] h-full min-h-screen bg-slate-900 flex flex-col shrink-0 overflow-y-auto">
+      {/* Logo + mobile close button */}
+      <div className="px-4 py-4 border-b border-slate-800 flex items-center justify-between">
         <Image
           src="/linda-logo.png"
           alt="Linda"
@@ -58,6 +61,15 @@ export default function Sidebar({
           className="object-contain"
           priority
         />
+        {onClose && (
+          <button
+            onClick={onClose}
+            className="lg:hidden p-1.5 rounded-lg text-slate-400 hover:text-white hover:bg-slate-800 transition-colors ml-2 shrink-0"
+            aria-label="Close menu"
+          >
+            <X className="w-4 h-4" />
+          </button>
+        )}
       </div>
 
       {/* Main nav */}

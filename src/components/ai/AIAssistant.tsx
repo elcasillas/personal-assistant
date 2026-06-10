@@ -78,7 +78,7 @@ export default function AIAssistant({ onClose }: AIAssistantProps) {
   }
 
   return (
-    <div className="w-[380px] min-h-screen bg-white border-l border-slate-200 flex flex-col shrink-0">
+    <div className="w-full h-full lg:w-[380px] lg:min-h-screen bg-white border-l border-slate-200 flex flex-col shrink-0">
       {/* Header */}
       <div className="flex items-center justify-between px-4 py-4 border-b border-slate-100">
         <div className="flex items-center gap-2">
