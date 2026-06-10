@@ -25,10 +25,10 @@ interface SidebarProps {
 
 const navItems: { id: Section; label: string; icon: React.ComponentType<{ className?: string }> }[] = [
   { id: "tasks",     label: "Tasks",      icon: CheckSquare },
-  { id: "notes",     label: "Notes",      icon: FileText },
-  { id: "contacts",  label: "Contacts",   icon: Users },
   { id: "followups", label: "Follow-ups", icon: Clock },
+  { id: "notes",     label: "Notes",      icon: FileText },
   { id: "drafts",    label: "Drafts",     icon: Mail },
+  { id: "contacts",  label: "Contacts",   icon: Users },
 ];
 
 export default function Sidebar({
