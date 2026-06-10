@@ -1,11 +1,13 @@
 "use client";
 import { useEffect, useState } from "react";
+import { useRouter } from "next/navigation";
 import { useUser } from "@/hooks/useUser";
 import type { User } from "@/lib/types";
 import { Plus, Trash2, KeyRound } from "lucide-react";
 
 export default function UserSettings() {
   const { user, loading } = useUser();
+  const router = useRouter();
   const [users, setUsers] = useState<User[]>([]);
   const [usersLoading, setUsersLoading] = useState(false);
   const [showCreate, setShowCreate] = useState(false);
@@ -15,7 +17,6 @@ export default function UserSettings() {
   const [newPw, setNewPw] = useState("");
   const [pwError, setPwError] = useState("");
   const [pwSuccess, setPwSuccess] = useState("");
-  const [msg, setMsg] = useState("");
 
   async function fetchUsers() {
     setUsersLoading(true);
@@ -63,8 +64,23 @@ export default function UserSettings() {
     setNewPw("");
   }
 
-  if (loading) return <div className="text-slate-500 text-sm">Loading…</div>;
-  if (!user) return null;
+  if (loading) return (
+    <div className="space-y-4 animate-pulse">
+      <div className="h-8 bg-slate-200 rounded w-32" />
+      <div className="bg-white rounded-xl p-6 ring-1 ring-slate-200 space-y-3">
+        <div className="h-4 bg-slate-200 rounded w-24" />
+        <div className="grid grid-cols-2 gap-4">
+          <div className="h-10 bg-slate-100 rounded" />
+          <div className="h-10 bg-slate-100 rounded" />
+        </div>
+      </div>
+    </div>
+  );
+
+  if (!user) {
+    router.push("/login");
+    return null;
+  }
 
   return (
     <div className="space-y-8">
@@ -190,8 +206,6 @@ export default function UserSettings() {
         </div>
       )}
 
-      {/* suppress unused variable warning */}
-      {msg && <p className="hidden">{msg}</p>}
     </div>
   );
 }

@@ -1,11 +1,7 @@
-import UserSettings from "@/components/settings/UserSettings";
+import DashboardClient from "@/components/Dashboard";
 
 export const metadata = { title: "Settings — Linda" };
 
 export default function SettingsPage() {
-  return (
-    <div className="max-w-3xl mx-auto px-6 py-8">
-      <UserSettings />
-    </div>
-  );
+  return <DashboardClient defaultSection="settings" />;
 }

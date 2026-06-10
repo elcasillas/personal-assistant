@@ -62,7 +62,7 @@ export interface ChatMessage {
   content: string;
 }
 
-export type Section = 'tasks' | 'notes' | 'contacts' | 'followups' | 'drafts';
+export type Section = 'tasks' | 'notes' | 'contacts' | 'followups' | 'drafts' | 'settings';
 
 export interface User {
   id: string;

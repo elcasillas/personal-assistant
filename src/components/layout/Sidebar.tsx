@@ -13,6 +13,7 @@ import {
 } from "lucide-react";
 import { useRouter } from "next/navigation";
 import type { Section } from "@/lib/types";
+import { useUser } from "@/hooks/useUser";
 
 interface SidebarProps {
   activeSection: Section;
@@ -22,11 +23,11 @@ interface SidebarProps {
 }
 
 const navItems: { id: Section; label: string; icon: React.ComponentType<{ className?: string }> }[] = [
-  { id: "tasks", label: "Tasks", icon: CheckSquare },
-  { id: "notes", label: "Notes", icon: FileText },
-  { id: "contacts", label: "Contacts", icon: Users },
+  { id: "tasks",     label: "Tasks",      icon: CheckSquare },
+  { id: "notes",     label: "Notes",      icon: FileText },
+  { id: "contacts",  label: "Contacts",   icon: Users },
   { id: "followups", label: "Follow-ups", icon: Clock },
-  { id: "drafts", label: "Drafts", icon: Mail },
+  { id: "drafts",    label: "Drafts",     icon: Mail },
 ];
 
 export default function Sidebar({
@@ -36,6 +37,7 @@ export default function Sidebar({
   onToggleAI,
 }: SidebarProps) {
   const router = useRouter();
+  const { user } = useUser();
 
   async function handleLogout() {
     await fetch("/api/auth/logout", { method: "POST" });
@@ -94,37 +96,37 @@ export default function Sidebar({
         </button>
 
         {/* Gmail - coming soon */}
-        <div className="relative group">
-          <button
-            disabled
-            className="w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium text-slate-600 cursor-not-allowed"
-          >
-            <Mail className="w-4 h-4 shrink-0" />
-            Gmail
-            <span className="ml-auto text-xs bg-slate-800 text-slate-500 px-1.5 py-0.5 rounded">
-              Soon
-            </span>
-          </button>
-        </div>
+        <button
+          disabled
+          className="w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium text-slate-600 cursor-not-allowed"
+        >
+          <Mail className="w-4 h-4 shrink-0" />
+          Gmail
+          <span className="ml-auto text-xs bg-slate-800 text-slate-500 px-1.5 py-0.5 rounded">
+            Soon
+          </span>
+        </button>
 
         {/* Calendar - coming soon */}
-        <div className="relative group">
-          <button
-            disabled
-            className="w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium text-slate-600 cursor-not-allowed"
-          >
-            <Calendar className="w-4 h-4 shrink-0" />
-            Calendar
-            <span className="ml-auto text-xs bg-slate-800 text-slate-500 px-1.5 py-0.5 rounded">
-              Soon
-            </span>
-          </button>
-        </div>
+        <button
+          disabled
+          className="w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium text-slate-600 cursor-not-allowed"
+        >
+          <Calendar className="w-4 h-4 shrink-0" />
+          Calendar
+          <span className="ml-auto text-xs bg-slate-800 text-slate-500 px-1.5 py-0.5 rounded">
+            Soon
+          </span>
+        </button>
 
         {/* Settings */}
         <button
-          onClick={() => router.push("/settings")}
-          className="w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium text-slate-400 hover:text-white hover:bg-slate-800 transition-colors"
+          onClick={() => onSectionChange("settings")}
+          className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium transition-colors text-left ${
+            activeSection === "settings"
+              ? "bg-indigo-600 text-white"
+              : "text-slate-400 hover:text-white hover:bg-slate-800"
+          }`}
         >
           <Settings className="w-4 h-4 shrink-0" />
           Settings
@@ -139,6 +141,21 @@ export default function Sidebar({
           Sign out
         </button>
       </div>
+
+      {/* Logged-in user */}
+      {user && (
+        <div className="px-4 py-3 border-t border-slate-800">
+          <p className="text-xs font-medium text-slate-300 truncate">{user.name}</p>
+          <p className="text-xs text-slate-500 truncate mt-0.5">{user.email}</p>
+          <span className={`inline-block mt-1.5 text-xs font-medium px-2 py-0.5 rounded-full ${
+            user.role === "admin"
+              ? "bg-indigo-900 text-indigo-300"
+              : "bg-slate-800 text-slate-400"
+          }`}>
+            {user.role}
+          </span>
+        </div>
+      )}
     </aside>
   );
 }
