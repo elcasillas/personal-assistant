@@ -16,7 +16,7 @@ export default function LoginPage() {
             className="mx-auto mb-4 object-contain"
             priority
           />
-          <p className="text-slate-400 text-sm mt-1">Your Personal Assistant</p>
+          <p className="text-slate-400 text-sm mt-1">Ed's Personal Assistant</p>
         </div>
         <LoginForm />
       </div>
