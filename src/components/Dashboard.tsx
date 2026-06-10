@@ -12,17 +12,37 @@ import UserSettings from "./settings/UserSettings";
 import AIAssistant from "./ai/AIAssistant";
 import type { Section } from "@/lib/types";
 
+const SECTION_STORAGE_KEY = "linda_active_section";
+const PERSISTABLE_SECTIONS: Section[] = ["tasks", "notes", "contacts", "followups", "drafts"];
+
+function readPersistedSection(fallback: Section): Section {
+  try {
+    const saved = localStorage.getItem(SECTION_STORAGE_KEY);
+    if (saved && (PERSISTABLE_SECTIONS as string[]).includes(saved)) return saved as Section;
+  } catch {
+    // localStorage unavailable (SSR or privacy mode)
+  }
+  return fallback;
+}
+
 interface DashboardClientProps {
   defaultSection?: Section;
 }
 
 export default function DashboardClient({ defaultSection = "tasks" }: DashboardClientProps) {
-  const [activeSection, setActiveSection] = useState<Section>(defaultSection);
+  const [activeSection, setActiveSection] = useState<Section>(() => {
+    // Settings is route-driven (/settings), so always trust the prop for it.
+    if (defaultSection === "settings") return "settings";
+    return readPersistedSection(defaultSection);
+  });
   const [aiOpen, setAiOpen] = useState(false);
   const router = useRouter();
 
   function handleSectionChange(section: Section) {
     setActiveSection(section);
+    if ((PERSISTABLE_SECTIONS as string[]).includes(section)) {
+      try { localStorage.setItem(SECTION_STORAGE_KEY, section); } catch {}
+    }
     if (section === "settings" && defaultSection !== "settings") {
       router.push("/settings");
     } else if (section !== "settings" && defaultSection === "settings") {
