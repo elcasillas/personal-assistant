@@ -1,6 +1,6 @@
 import OpenAI from "openai";
 import { v4 as uuidv4 } from "uuid";
-import { d1Query, d1Execute, d1Batch } from "@/lib/d1";
+import { d1Query, d1Execute } from "@/lib/d1";
 
 export const dynamic = "force-dynamic";
 
@@ -95,6 +95,46 @@ const TOOLS: OpenAI.Chat.ChatCompletionTool[] = [
       },
     },
   },
+  {
+    type: "function",
+    function: {
+      name: "create_followup",
+      description:
+        'Create a new follow-up item. You MUST call this — never create_task — whenever the user says "in follow-ups", "follow-up", "follow up", "followup", or "follow-up under [name]". Never confirm follow-up creation with text alone — only confirm after this function returns success.',
+      parameters: {
+        type: "object",
+        properties: {
+          subject: { type: "string", description: "The follow-up subject or topic" },
+          groupName: {
+            type: "string",
+            description:
+              'The group or person this follow-up belongs to. Extract from "under [name]". If not mentioned, use "Inbox". The group will be auto-created if it does not exist.',
+          },
+          contactName: {
+            type: "string",
+            description: "Contact name if explicitly mentioned and different from the group name. Omit if not mentioned.",
+          },
+          status: {
+            type: "string",
+            enum: ["not_started", "working", "done", "stuck"],
+            description:
+              'not_started=Not Started, working=Working on it, done=Done, stuck=Stuck. Map "not working on it" → "not_started", "working on it" → "working".',
+          },
+          priority: {
+            type: "string",
+            enum: ["low", "medium", "high", "urgent"],
+          },
+          dueDate: {
+            type: "string",
+            description:
+              "Due date as YYYY-MM-DD. Compute from relative terms using today's date in the system prompt. Omit if no date was mentioned.",
+          },
+          notes: { type: "string", description: "Optional notes or context" },
+        },
+        required: ["subject", "groupName", "status", "priority"],
+      },
+    },
+  },
 ];
 
 // ─── Tool execution ───────────────────────────────────────────
@@ -181,17 +221,68 @@ async function executeTool(
       }
 
       case "delete_task": {
-        await d1Batch([
-          {
-            sql: "DELETE FROM todo_task_updates WHERE task_id = ? AND user_id = ?",
-            params: [args.id, userId],
-          },
-          {
-            sql: "DELETE FROM todo_tasks WHERE id = ? AND user_id = ?",
-            params: [args.id, userId],
-          },
-        ]);
+        await d1Execute(
+          "DELETE FROM todo_task_updates WHERE task_id = ? AND user_id = ?",
+          [args.id, userId]
+        );
+        await d1Execute(
+          "DELETE FROM todo_tasks WHERE id = ? AND user_id = ?",
+          [args.id, userId]
+        );
         return { success: true, data: { id: args.id, deleted: true } };
+      }
+
+      case "create_followup": {
+        const groupName = (args.groupName as string) || "Inbox";
+
+        // Find or create the group
+        const existingGroups = await d1Query<{ id: string; name: string }>(
+          "SELECT id, name FROM followup_groups WHERE user_id = ? AND LOWER(name) = LOWER(?)",
+          [userId, groupName]
+        );
+
+        let groupId: string;
+        if (existingGroups.length > 0) {
+          groupId = existingGroups[0].id;
+        } else {
+          groupId = uuidv4();
+          const maxGroupOrder = await d1Query<{ next_order: number }>(
+            "SELECT COALESCE(MAX(sort_order), -1) + 1 AS next_order FROM followup_groups WHERE user_id = ?",
+            [userId]
+          );
+          const groupOrder = maxGroupOrder[0]?.next_order ?? 0;
+          await d1Execute(
+            "INSERT INTO followup_groups (id, user_id, name, color, collapsed, sort_order) VALUES (?, ?, ?, ?, ?, ?)",
+            [groupId, userId, groupName, "#6366f1", 0, groupOrder]
+          );
+        }
+
+        const maxItemOrder = await d1Query<{ next_order: number }>(
+          "SELECT COALESCE(MAX(sort_order), -1) + 1 AS next_order FROM followup_items WHERE group_id = ? AND user_id = ?",
+          [groupId, userId]
+        );
+        const itemOrder = maxItemOrder[0]?.next_order ?? 0;
+
+        const id = uuidv4();
+        const now = new Date().toISOString();
+        const status = (args.status as string) ?? "not_started";
+        const priority = (args.priority as string) ?? "medium";
+        const dueDate = (args.dueDate as string) || null;
+        const notes = (args.notes as string) ?? "";
+        const contactName = (args.contactName as string) ?? "";
+        const completed = status === "done" ? 1 : 0;
+
+        await d1Execute(
+          `INSERT INTO followup_items
+             (id, user_id, subject, contact_name, status, priority, due_date, notes, completed, group_id, sort_order, created_at, updated_at)
+           VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+          [id, userId, args.subject, contactName, status, priority, dueDate, notes, completed, groupId, itemOrder, now, now]
+        );
+
+        return {
+          success: true,
+          data: { id, subject: args.subject, status, priority, dueDate, groupId, groupName },
+        };
       }
 
       default:
@@ -225,9 +316,16 @@ export async function POST(req: Request) {
     ? "SELECT id, title, status, priority, due_date FROM todo_tasks WHERE user_id = ? ORDER BY created_at DESC LIMIT 50"
     : "SELECT id, title, status, priority, due_date FROM todo_tasks ORDER BY created_at DESC LIMIT 50";
 
-  const [tasks, notes] = await Promise.all([
+  const followupGroupsSql = userId
+    ? "SELECT id, name FROM followup_groups WHERE user_id = ? ORDER BY sort_order ASC"
+    : null;
+
+  const [tasks, notes, followupGroups] = await Promise.all([
     d1Query(tasksSql, userId ? [userId] : []),
     d1Query("SELECT id, title, content, tags FROM notes ORDER BY updated_at DESC LIMIT 20"),
+    followupGroupsSql
+      ? d1Query<{ id: string; name: string }>(followupGroupsSql, [userId!])
+      : Promise.resolve([] as { id: string; name: string }[]),
   ]);
 
   const today = new Date().toISOString().slice(0, 10);
@@ -235,14 +333,23 @@ export async function POST(req: Request) {
   const systemContent = `Your name is Linda. You are a personal executive assistant.
 Today's date: ${today}
 
-RULES:
-- When the user asks to create, update, complete, or delete a task you MUST call the appropriate tool. Never confirm or describe task actions using text alone — only confirm after the tool returns a successful result.
+ROUTING RULES — follow exactly, no exceptions:
+- If the user says "in follow-ups", "follow-up", "follow up", "followup", or "follow-up under [name]" → call create_followup. NEVER call create_task for these requests.
+- "under [name]" in a follow-ups request → set groupName to [name].
+- If the user says "task", "to-do", "todo", or does not mention follow-ups → call create_task.
+- For update / complete / delete requests, match to the correct existing item ID from the lists below.
+
+GENERAL RULES:
+- You MUST call the appropriate tool for any create/update/complete/delete action. Never confirm actions with text alone — only confirm after the tool returns success.
 - If a tool returns an error, report the exact error to the user.
-- Compute relative dates ("tomorrow", "next Monday", etc.) using today's date above and output YYYY-MM-DD.
-- Status enum: not_started, working, done, stuck. Map natural language: "working on it" → "working".
+- Compute relative dates ("tomorrow", "next Monday", "this Friday", etc.) using today's date above and output YYYY-MM-DD.
+- Status enum: not_started=Not Started, working=Working on it, done=Done, stuck=Stuck. Map "not working on it" → "not_started".
 
 Current Tasks (use these IDs for update / complete / delete):
 ${JSON.stringify(tasks, null, 2)}
+
+Current Follow-up Groups (use groupName for create_followup; group is auto-created if missing):
+${JSON.stringify(followupGroups.map((g) => g.name), null, 2)}
 
 Recent Notes:
 ${JSON.stringify(notes, null, 2)}
