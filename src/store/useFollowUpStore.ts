@@ -66,6 +66,7 @@ interface FollowUpStore {
   loading: boolean;
   error: string | null;
   groupReorderError: string | null;
+  groupDeleteError: string | null;
 
   currentUser: CurrentUser | null;
   setCurrentUser: (user: CurrentUser | null) => void;
@@ -86,7 +87,8 @@ interface FollowUpStore {
 
   addGroup: (name: string) => void;
   updateGroup: (id: string, updates: Partial<FollowUpGroup>) => void;
-  deleteGroup: (id: string) => void;
+  deleteGroup: (id: string) => Promise<void>;
+  clearGroupDeleteError: () => void;
   toggleGroup: (id: string) => void;
   reorderGroups: (activeId: string, overId: string) => Promise<void>;
   clearGroupReorderError: () => void;
@@ -116,6 +118,7 @@ export const useFollowUpStore = create<FollowUpStore>()((set, get) => ({
   loading: true,
   error: null,
   groupReorderError: null,
+  groupDeleteError: null,
   currentUser: null,
   selectedItemId: null,
   updates: {},
@@ -288,13 +291,25 @@ export const useFollowUpStore = create<FollowUpStore>()((set, get) => ({
     api("/api/followup/groups", "PATCH", { id, ...updates }).catch(console.error);
   },
 
-  deleteGroup: (id) => {
+  deleteGroup: async (id) => {
+    const { groups, items } = get();
     set({
-      groups: get().groups.filter((g) => g.id !== id),
-      items: get().items.filter((t) => t.groupId !== id),
+      groups: groups.filter((g) => g.id !== id),
+      items: items.filter((t) => t.groupId !== id),
+      groupDeleteError: null,
     });
-    api("/api/followup/groups", "DELETE", { id }).catch(console.error);
+    try {
+      await api("/api/followup/groups", "DELETE", { id });
+    } catch (err) {
+      set({
+        groups,
+        items,
+        groupDeleteError: err instanceof Error ? err.message : "Failed to delete group.",
+      });
+    }
   },
+
+  clearGroupDeleteError: () => set({ groupDeleteError: null }),
 
   toggleGroup: (id) => {
     const group = get().groups.find((g) => g.id === id);

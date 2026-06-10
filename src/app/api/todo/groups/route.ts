@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 import { headers } from "next/headers";
 import { getSessionFromHeaders } from "@/lib/auth";
-import { d1Query, d1Execute, d1Batch } from "@/lib/d1";
+import { d1Query, d1Execute } from "@/lib/d1";
 
 export const dynamic = "force-dynamic";
 
@@ -82,16 +82,14 @@ export async function DELETE(req: Request) {
 
   if (taskIds.length > 0) {
     const placeholders = taskIds.map(() => "?").join(", ");
-    await d1Batch([
-      {
-        sql: `DELETE FROM todo_task_updates WHERE task_id IN (${placeholders}) AND user_id = ?`,
-        params: [...taskIds, user.id],
-      },
-      {
-        sql: `DELETE FROM todo_tasks WHERE group_id = ? AND user_id = ?`,
-        params: [id, user.id],
-      },
-    ]);
+    await d1Execute(
+      `DELETE FROM todo_task_updates WHERE task_id IN (${placeholders}) AND user_id = ?`,
+      [...taskIds, user.id]
+    );
+    await d1Execute(
+      "DELETE FROM todo_tasks WHERE group_id = ? AND user_id = ?",
+      [id, user.id]
+    );
   }
 
   await d1Execute("DELETE FROM todo_groups WHERE id = ? AND user_id = ?", [id, user.id]);

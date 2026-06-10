@@ -5,6 +5,7 @@ import { SortableContext, useSortable, verticalListSortingStrategy } from "@dnd-
 import { CSS } from "@dnd-kit/utilities";
 import { FollowUpRow } from "./FollowUpRow";
 import { FollowUpCard } from "./FollowUpCard";
+import { ConfirmDialog } from "@/components/todo/ui/ConfirmDialog";
 import { useFollowUpStore } from "@/store/useFollowUpStore";
 import { useClickOutside } from "@/hooks/useClickOutside";
 import { cn } from "@/lib/todo-utils";
@@ -28,6 +29,7 @@ export function FollowUpGroupSection({ group, items, onEditItem, onDeleteItem, o
   const [editingName, setEditingName] = useState(false);
   const [nameDraft, setNameDraft] = useState(group.name);
   const [showColorPicker, setShowColorPicker] = useState(false);
+  const [confirmingDelete, setConfirmingDelete] = useState(false);
 
   const menuRef = useRef<HTMLDivElement>(null);
   useClickOutside(menuRef, () => setShowGroupMenu(false), showGroupMenu);
@@ -48,6 +50,7 @@ export function FollowUpGroupSection({ group, items, onEditItem, onDeleteItem, o
     (hiddenColumns.notes ? 0 : 1) + 1;
 
   return (
+    <>
     <div ref={setNodeRef} style={dragStyle} className={cn("mb-6", isDragging && "opacity-50")}>
       <div className="flex items-center gap-1.5 mb-2 px-1 group/header">
         <button {...listeners} {...attributes} tabIndex={-1} title="Drag to reorder"
@@ -95,7 +98,7 @@ export function FollowUpGroupSection({ group, items, onEditItem, onDeleteItem, o
               {allGroups.length > 1 && (
                 <>
                   <hr className="border-slate-100 my-0.5" />
-                  <button onClick={() => { deleteGroup(group.id); setShowGroupMenu(false); }} className="w-full flex items-center gap-2.5 px-3 py-2 text-sm text-red-500 hover:bg-red-50">
+                  <button onClick={() => { setShowGroupMenu(false); setConfirmingDelete(true); }} className="w-full flex items-center gap-2.5 px-3 py-2 text-sm text-red-500 hover:bg-red-50">
                     <Trash2 className="w-3.5 h-3.5" /> Delete group
                   </button>
                 </>
@@ -155,5 +158,20 @@ export function FollowUpGroupSection({ group, items, onEditItem, onDeleteItem, o
         </>
       )}
     </div>
+
+    {confirmingDelete && (
+      <ConfirmDialog
+        title="Delete group"
+        message={
+          items.length > 0
+            ? `"${group.name}" contains ${items.length} follow-up${items.length !== 1 ? "s" : ""}. Deleting the group will permanently remove all of them.`
+            : `"${group.name}" will be permanently deleted.`
+        }
+        confirmLabel="Delete group"
+        onConfirm={() => { setConfirmingDelete(false); deleteGroup(group.id); }}
+        onCancel={() => setConfirmingDelete(false)}
+      />
+    )}
+    </>
   );
 }

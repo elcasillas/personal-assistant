@@ -37,7 +37,7 @@ function GroupDragOverlayContent({ group }: { group: FollowUpGroup }) {
 }
 
 export function FollowUpTable({ onEditItem, onDeleteItem, onAddItem }: FollowUpTableProps) {
-  const { items, groups, filter, sort, hiddenColumns, showDoneItems, reorderItems, moveBetweenGroups, addGroup, reorderGroups, groupReorderError, clearGroupReorderError } = useFollowUpStore();
+  const { items, groups, filter, sort, hiddenColumns, showDoneItems, reorderItems, moveBetweenGroups, addGroup, reorderGroups, groupReorderError, clearGroupReorderError, groupDeleteError, clearGroupDeleteError } = useFollowUpStore();
 
   const [activeItem, setActiveItem] = useState<FollowUpItem | null>(null);
   const [activeGroup, setActiveGroup] = useState<FollowUpGroup | null>(null);
@@ -88,6 +88,12 @@ export function FollowUpTable({ onEditItem, onDeleteItem, onAddItem }: FollowUpT
         <div className="flex items-center gap-2 mb-3 px-3 py-2 text-sm text-red-700 bg-red-50 border border-red-200 rounded-lg">
           <span className="flex-1">{groupReorderError}</span>
           <button onClick={clearGroupReorderError} className="text-red-400 hover:text-red-600 transition-colors flex-shrink-0"><X className="w-4 h-4" /></button>
+        </div>
+      )}
+      {groupDeleteError && (
+        <div className="flex items-center gap-2 mb-3 px-3 py-2 text-sm text-red-700 bg-red-50 border border-red-200 rounded-lg">
+          <span className="flex-1">{groupDeleteError}</span>
+          <button onClick={clearGroupDeleteError} className="text-red-400 hover:text-red-600 transition-colors flex-shrink-0"><X className="w-4 h-4" /></button>
         </div>
       )}
       <SortableContext items={sortedGroups.map((g) => g.id)} strategy={verticalListSortingStrategy}>

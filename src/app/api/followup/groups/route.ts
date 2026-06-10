@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
-import { d1Query, d1Execute, d1Batch } from "@/lib/d1";
+import { d1Query, d1Execute } from "@/lib/d1";
 
 function userId(req: NextRequest) {
   return req.headers.get("x-user-id") ?? "";
@@ -77,13 +77,32 @@ export async function DELETE(req: NextRequest) {
   try {
     const uid = userId(req);
     const body = await req.json();
-    await d1Batch([
-      { sql: "DELETE FROM followup_updates WHERE followup_id IN (SELECT id FROM followup_items WHERE group_id = ? AND user_id = ?)", params: [body.id, uid] },
-      { sql: "DELETE FROM followup_items WHERE group_id = ? AND user_id = ?", params: [body.id, uid] },
-      { sql: "DELETE FROM followup_groups WHERE id = ? AND user_id = ?", params: [body.id, uid] },
-    ]);
+    if (!body?.id) return NextResponse.json({ error: "id required" }, { status: 400 });
+
+    // Cascade: delete child updates → child items → group (all scoped to this user)
+    const items = await d1Query<{ id: string }>(
+      "SELECT id FROM followup_items WHERE group_id = ? AND user_id = ?",
+      [body.id, uid]
+    );
+    if (items.length > 0) {
+      const placeholders = items.map(() => "?").join(", ");
+      const itemIds = items.map((r) => r.id);
+      await d1Execute(
+        `DELETE FROM followup_updates WHERE followup_id IN (${placeholders}) AND user_id = ?`,
+        [...itemIds, uid]
+      );
+      await d1Execute(
+        "DELETE FROM followup_items WHERE group_id = ? AND user_id = ?",
+        [body.id, uid]
+      );
+    }
+    await d1Execute(
+      "DELETE FROM followup_groups WHERE id = ? AND user_id = ?",
+      [body.id, uid]
+    );
     return NextResponse.json({ success: true });
   } catch (err) {
+    console.error("[followup/groups DELETE]", err);
     return NextResponse.json({ error: String(err) }, { status: 500 });
   }
 }
