@@ -11,6 +11,7 @@ import {
   Settings,
   LogOut,
 } from "lucide-react";
+import Image from "next/image";
 import { useRouter } from "next/navigation";
 import type { Section } from "@/lib/types";
 import { useUser } from "@/hooks/useUser";
@@ -48,15 +49,15 @@ export default function Sidebar({
   return (
     <aside className="w-[220px] min-h-screen bg-slate-900 flex flex-col shrink-0">
       {/* Logo */}
-      <div className="px-4 py-5 border-b border-slate-800">
-        <div className="flex items-center gap-3">
-          <div className="w-8 h-8 bg-indigo-600 rounded-lg flex items-center justify-center shrink-0">
-            <span className="text-white text-sm font-bold">L</span>
-          </div>
-          <span className="text-white font-semibold text-sm tracking-wide">
-            Linda
-          </span>
-        </div>
+      <div className="px-4 py-4 border-b border-slate-800">
+        <Image
+          src="/linda-logo.png"
+          alt="Linda"
+          width={140}
+          height={44}
+          className="object-contain"
+          priority
+        />
       </div>
 
       {/* Main nav */}
