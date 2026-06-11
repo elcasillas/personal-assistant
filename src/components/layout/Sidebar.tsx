@@ -55,14 +55,20 @@ export default function Sidebar({
     <aside className="w-[220px] h-full min-h-screen bg-slate-900 flex flex-col shrink-0 overflow-y-auto">
       {/* Logo + mobile close button */}
       <div className="px-4 py-4 border-b border-slate-800 flex items-center justify-between">
-        <Image
-          src="/linda-logo.png"
-          alt="Linda"
-          width={140}
-          height={44}
-          className="object-contain"
-          priority
-        />
+        <button
+          onClick={() => onSectionChange("home")}
+          className="focus:outline-none focus:ring-2 focus:ring-indigo-500 rounded"
+          aria-label="Go to home"
+        >
+          <Image
+            src="/linda-logo.png"
+            alt="Linda"
+            width={140}
+            height={44}
+            className="object-contain"
+            priority
+          />
+        </button>
         {onClose && (
           <button
             onClick={onClose}

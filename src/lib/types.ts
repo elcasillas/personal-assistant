@@ -19,6 +19,8 @@ export interface Note {
   title: string;
   content: string;
   tags: string[];
+  archived: boolean;
+  archivedAt: string | null;
   createdAt: string;
   updatedAt: string;
 }
@@ -62,7 +64,7 @@ export interface ChatMessage {
   content: string;
 }
 
-export type Section = 'tasks' | 'notes' | 'contacts' | 'followups' | 'drafts' | 'routines' | 'settings';
+export type Section = 'home' | 'tasks' | 'notes' | 'contacts' | 'followups' | 'drafts' | 'routines' | 'settings';
 
 export interface Routine {
   id: string;

@@ -7,12 +7,14 @@ import { Menu, Bot } from "lucide-react";
 import Sidebar from "./layout/Sidebar";
 import TodoModule from "./todo/TodoModule";
 import NoteList from "./notes/NoteList";
+import Toaster from "./ui/Toaster";
 import ContactList from "./contacts/ContactList";
 import FollowUpModule from "./followups/FollowUpModule";
 import DraftList from "./drafts/DraftList";
 import UserSettings from "./settings/UserSettings";
 import RoutineList from "./routines/RoutineList";
 import AIAssistant from "./ai/AIAssistant";
+import HomeDashboard from "./home/HomeDashboard";
 import type { Section } from "@/lib/types";
 
 const SECTION_STORAGE_KEY = "linda_active_section";
@@ -32,7 +34,7 @@ interface DashboardClientProps {
   defaultSection?: Section;
 }
 
-export default function DashboardClient({ defaultSection = "tasks" }: DashboardClientProps) {
+export default function DashboardClient({ defaultSection = "home" }: DashboardClientProps) {
   const [activeSection, setActiveSection] = useState<Section>(() => {
     if (defaultSection === "settings") return "settings";
     return readPersistedSection(defaultSection);
@@ -56,6 +58,7 @@ export default function DashboardClient({ defaultSection = "tasks" }: DashboardC
 
   function renderSection() {
     switch (activeSection) {
+      case "home":      return <HomeDashboard onSectionChange={handleSectionChange} />;
       case "tasks":     return <TodoModule />;
       case "notes":     return <NoteList />;
       case "contacts":  return <ContactList />;
@@ -70,6 +73,7 @@ export default function DashboardClient({ defaultSection = "tasks" }: DashboardC
 
   return (
     <div className="flex flex-col h-screen bg-slate-50 overflow-hidden">
+      <Toaster />
       {/* ── Mobile top bar (hidden on lg+) ───────────────────────── */}
       <header className="lg:hidden shrink-0 bg-slate-900 flex items-center justify-between px-4 py-2.5 border-b border-slate-800 z-20">
         <button
