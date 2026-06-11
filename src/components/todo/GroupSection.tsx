@@ -54,7 +54,7 @@ export function GroupSection({ group, tasks, onEditTask, onDeleteTask, onAddTask
           className="cursor-grab active:cursor-grabbing p-1 rounded hover:bg-slate-100 text-slate-300 hover:text-slate-500 transition-colors opacity-0 group-hover/header:opacity-100">
           <GripVertical className="w-3.5 h-3.5" />
         </button>
-        <button onClick={() => toggleGroup(group.id)} className="p-1 rounded hover:bg-slate-100 transition-colors text-slate-500">
+        <button onClick={() => toggleGroup(group.id)} title={group.collapsed ? "Expand group" : "Collapse group"} className="p-1 rounded hover:bg-slate-100 transition-colors text-slate-400 hover:text-slate-600 cursor-pointer">
           {group.collapsed ? <ChevronRight className="w-4 h-4" /> : <ChevronDown className="w-4 h-4" />}
         </button>
         {editingName ? (

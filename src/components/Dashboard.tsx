@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import Image from "next/image";
 import { Menu, Bot } from "lucide-react";
@@ -20,25 +20,25 @@ import type { Section } from "@/lib/types";
 const SECTION_STORAGE_KEY = "linda_active_section";
 const PERSISTABLE_SECTIONS: Section[] = ["tasks", "notes", "contacts", "followups", "drafts", "routines"];
 
-function readPersistedSection(fallback: Section): Section {
-  try {
-    const saved = localStorage.getItem(SECTION_STORAGE_KEY);
-    if (saved && (PERSISTABLE_SECTIONS as string[]).includes(saved)) return saved as Section;
-  } catch {
-    // localStorage unavailable (SSR or privacy mode)
-  }
-  return fallback;
-}
-
 interface DashboardClientProps {
   defaultSection?: Section;
 }
 
 export default function DashboardClient({ defaultSection = "home" }: DashboardClientProps) {
-  const [activeSection, setActiveSection] = useState<Section>(() => {
-    if (defaultSection === "settings") return "settings";
-    return readPersistedSection(defaultSection);
-  });
+  const [activeSection, setActiveSection] = useState<Section>(
+    defaultSection === "settings" ? "settings" : defaultSection
+  );
+
+  // Restore persisted section after mount (client-only — avoids SSR/client hydration mismatch)
+  useEffect(() => {
+    if (defaultSection === "settings") return;
+    try {
+      const saved = localStorage.getItem(SECTION_STORAGE_KEY);
+      if (saved && (PERSISTABLE_SECTIONS as string[]).includes(saved)) {
+        setActiveSection(saved as Section);
+      }
+    } catch {}
+  }, [defaultSection]);
   const [aiOpen, setAiOpen] = useState(false);
   const [mobileNavOpen, setMobileNavOpen] = useState(false);
   const router = useRouter();
