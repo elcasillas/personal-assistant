@@ -21,6 +21,7 @@ export default function LoginForm() {
       });
       const data = await res.json();
       if (!res.ok) { setError(data.error ?? "Login failed"); return; }
+      try { localStorage.removeItem("linda_active_section"); } catch {}
       router.push("/dashboard");
       router.refresh();
     } catch {

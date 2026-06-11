@@ -57,7 +57,7 @@ export default function Sidebar({
       <div className="px-4 py-4 border-b border-slate-800 flex items-center justify-between">
         <button
           onClick={() => onSectionChange("home")}
-          className="focus:outline-none focus:ring-2 focus:ring-indigo-500 rounded"
+          className="focus:outline-none focus-visible:outline-none active:outline-none"
           aria-label="Go to home"
         >
           <Image
