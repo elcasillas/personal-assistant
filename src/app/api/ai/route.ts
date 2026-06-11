@@ -313,31 +313,67 @@ export async function POST(req: Request) {
   const userId = req.headers.get("x-user-id") ?? null;
 
   const tasksSql = userId
-    ? "SELECT id, title, status, priority, due_date FROM todo_tasks WHERE user_id = ? ORDER BY created_at DESC LIMIT 50"
-    : "SELECT id, title, status, priority, due_date FROM todo_tasks ORDER BY created_at DESC LIMIT 50";
+    ? `SELECT t.id, t.title, t.status, t.priority, t.due_date, t.notes, g.name as group_name
+       FROM todo_tasks t LEFT JOIN todo_groups g ON t.group_id = g.id
+       WHERE t.user_id = ? AND t.completed = 0 ORDER BY t.created_at DESC LIMIT 50`
+    : `SELECT t.id, t.title, t.status, t.priority, t.due_date, t.notes, g.name as group_name
+       FROM todo_tasks t LEFT JOIN todo_groups g ON t.group_id = g.id
+       WHERE t.completed = 0 ORDER BY t.created_at DESC LIMIT 50`;
 
-  const followupGroupsSql = userId
-    ? "SELECT id, name FROM followup_groups WHERE user_id = ? ORDER BY sort_order ASC"
+  const followupItemsSql = userId
+    ? `SELECT f.id, f.subject, f.status, f.priority, f.due_date, f.notes, g.name as group_name, f.contact_name
+       FROM followup_items f LEFT JOIN followup_groups g ON f.group_id = g.id
+       WHERE f.user_id = ? AND f.completed = 0 ORDER BY f.due_date ASC LIMIT 50`
     : null;
 
-  const [tasks, notes, followupGroups] = await Promise.all([
+  const routinesSql = userId
+    ? "SELECT id, name, trigger_phrases, instructions, output_format FROM routines WHERE user_id = ? AND active = 1 ORDER BY created_at ASC"
+    : null;
+
+  const [tasks, notes, followupItems, activeRoutines] = await Promise.all([
     d1Query(tasksSql, userId ? [userId] : []),
     d1Query("SELECT id, title, content, tags FROM notes ORDER BY updated_at DESC LIMIT 20"),
-    followupGroupsSql
-      ? d1Query<{ id: string; name: string }>(followupGroupsSql, [userId!])
-      : Promise.resolve([] as { id: string; name: string }[]),
+    followupItemsSql
+      ? d1Query<Record<string, unknown>>(followupItemsSql, [userId!])
+      : Promise.resolve([] as Record<string, unknown>[]),
+    routinesSql
+      ? d1Query<{ id: string; name: string; trigger_phrases: string; instructions: string; output_format: string }>(routinesSql, [userId!])
+      : Promise.resolve([] as { id: string; name: string; trigger_phrases: string; instructions: string; output_format: string }[]),
   ]);
 
+  const followupGroups = Array.from(
+    new Map(
+      (followupItems as { group_name?: string }[])
+        .filter((f) => f.group_name)
+        .map((f) => [f.group_name, f.group_name])
+    ).values()
+  );
+
   const today = new Date().toISOString().slice(0, 10);
+
+  const routinesContext = activeRoutines.length > 0
+    ? `\n\nAVAILABLE ROUTINES (execute when triggered — do NOT create tasks or follow-ups):
+${activeRoutines
+  .map((r) => {
+    const phrases = JSON.parse(r.trigger_phrases || "[]") as string[];
+    return `Routine: "${r.name}"
+Trigger phrases: ${phrases.join(" | ")}
+Instructions: ${r.instructions}
+Output format:
+${r.output_format}`;
+  })
+  .join("\n---\n")}`
+    : "";
 
   const systemContent = `Your name is Linda. You are a personal executive assistant.
 Today's date: ${today}
 
 ROUTING RULES — follow exactly, no exceptions:
-- If the user says "in follow-ups", "follow-up", "follow up", "followup", or "follow-up under [name]" → call create_followup. NEVER call create_task for these requests.
-- "under [name]" in a follow-ups request → set groupName to [name].
-- If the user says "task", "to-do", "todo", or does not mention follow-ups → call create_task.
-- For update / complete / delete requests, match to the correct existing item ID from the lists below.
+1. ROUTINE REQUESTS — if the user's message closely matches any routine's trigger phrases (see AVAILABLE ROUTINES below), execute that routine using the tasks and follow-ups data in this context. Respond in the exact output format specified. Do NOT call create_task, create_followup, or any other tool for routine requests.
+2. ROUTINE MANAGEMENT — if the user asks to create, edit, list, or manage routines → respond: "You can manage routines in the Routines section of the sidebar." Do NOT call any tool.
+3. FOLLOW-UPS — if the user says "in follow-ups", "follow-up", "follow up", "followup", or "follow-up under [name]" → call create_followup. NEVER call create_task for these requests.
+4. TASKS — if the user says "task", "to-do", "todo", or does not mention follow-ups or routines → call create_task.
+5. UPDATE / COMPLETE / DELETE — match to the correct existing item ID from the lists below.
 
 GENERAL RULES:
 - You MUST call the appropriate tool for any create/update/complete/delete action. Never confirm actions with text alone — only confirm after the tool returns success.
@@ -348,11 +384,15 @@ GENERAL RULES:
 Current Tasks (use these IDs for update / complete / delete):
 ${JSON.stringify(tasks, null, 2)}
 
+Current Follow-ups (use these for summary routines and for update / complete / delete):
+${JSON.stringify(followupItems, null, 2)}
+
 Current Follow-up Groups (use groupName for create_followup; group is auto-created if missing):
-${JSON.stringify(followupGroups.map((g) => g.name), null, 2)}
+${JSON.stringify(followupGroups, null, 2)}
 
 Recent Notes:
 ${JSON.stringify(notes, null, 2)}
+${routinesContext}
 
 Be concise and professional.`;
 

@@ -11,6 +11,7 @@ import {
   Settings,
   LogOut,
   X,
+  Zap,
 } from "lucide-react";
 import Image from "next/image";
 import { useRouter } from "next/navigation";
@@ -31,6 +32,7 @@ const navItems: { id: Section; label: string; icon: React.ComponentType<{ classN
   { id: "notes",     label: "Notes",      icon: FileText },
   { id: "drafts",    label: "Drafts",     icon: Mail },
   { id: "contacts",  label: "Contacts",   icon: Users },
+  { id: "routines",  label: "Routines",   icon: Zap },
 ];
 
 export default function Sidebar({

@@ -11,11 +11,12 @@ import ContactList from "./contacts/ContactList";
 import FollowUpModule from "./followups/FollowUpModule";
 import DraftList from "./drafts/DraftList";
 import UserSettings from "./settings/UserSettings";
+import RoutineList from "./routines/RoutineList";
 import AIAssistant from "./ai/AIAssistant";
 import type { Section } from "@/lib/types";
 
 const SECTION_STORAGE_KEY = "linda_active_section";
-const PERSISTABLE_SECTIONS: Section[] = ["tasks", "notes", "contacts", "followups", "drafts"];
+const PERSISTABLE_SECTIONS: Section[] = ["tasks", "notes", "contacts", "followups", "drafts", "routines"];
 
 function readPersistedSection(fallback: Section): Section {
   try {
@@ -60,6 +61,7 @@ export default function DashboardClient({ defaultSection = "tasks" }: DashboardC
       case "contacts":  return <ContactList />;
       case "followups": return <FollowUpModule />;
       case "drafts":    return <DraftList />;
+      case "routines":  return <RoutineList />;
       case "settings":  return <UserSettings />;
     }
   }

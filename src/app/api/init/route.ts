@@ -168,6 +168,50 @@ const tables = [
       updated_at TEXT NOT NULL
     )`,
   },
+  {
+    name: "routines",
+    sql: `CREATE TABLE IF NOT EXISTS routines (
+      id TEXT PRIMARY KEY,
+      user_id TEXT NOT NULL,
+      name TEXT NOT NULL,
+      description TEXT NOT NULL DEFAULT '',
+      trigger_phrases TEXT NOT NULL DEFAULT '[]',
+      instructions TEXT NOT NULL DEFAULT '',
+      data_sources TEXT NOT NULL DEFAULT '[]',
+      output_format TEXT NOT NULL DEFAULT '',
+      active INTEGER NOT NULL DEFAULT 1,
+      last_run_at TEXT,
+      created_at TEXT NOT NULL,
+      updated_at TEXT NOT NULL
+    )`,
+  },
+  {
+    name: "routine_runs",
+    sql: `CREATE TABLE IF NOT EXISTS routine_runs (
+      id TEXT PRIMARY KEY,
+      user_id TEXT NOT NULL,
+      routine_id TEXT NOT NULL,
+      routine_name TEXT NOT NULL DEFAULT '',
+      output TEXT NOT NULL DEFAULT '',
+      status TEXT NOT NULL DEFAULT 'success',
+      error TEXT,
+      started_at TEXT,
+      completed_at TEXT,
+      created_at TEXT NOT NULL
+    )`,
+  },
+  {
+    name: "routine_runs_idx_routine",
+    sql: `CREATE INDEX IF NOT EXISTS idx_routine_runs_routine_id ON routine_runs (routine_id)`,
+  },
+  {
+    name: "routine_runs_idx_user",
+    sql: `CREATE INDEX IF NOT EXISTS idx_routine_runs_user_id ON routine_runs (user_id)`,
+  },
+  {
+    name: "routine_runs_idx_created",
+    sql: `CREATE INDEX IF NOT EXISTS idx_routine_runs_created_at ON routine_runs (created_at)`,
+  },
 ];
 
 export async function POST() {

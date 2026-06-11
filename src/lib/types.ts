@@ -62,7 +62,35 @@ export interface ChatMessage {
   content: string;
 }
 
-export type Section = 'tasks' | 'notes' | 'contacts' | 'followups' | 'drafts' | 'settings';
+export type Section = 'tasks' | 'notes' | 'contacts' | 'followups' | 'drafts' | 'routines' | 'settings';
+
+export interface Routine {
+  id: string;
+  userId: string;
+  name: string;
+  description: string;
+  triggerPhrases: string[];
+  instructions: string;
+  dataSources: string[];
+  outputFormat: string;
+  active: boolean;
+  lastRunAt: string | null;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface RoutineRun {
+  id: string;
+  userId: string;
+  routineId: string;
+  routineName: string;
+  output: string;
+  status: 'running' | 'success' | 'failed';
+  error: string | null;
+  startedAt: string | null;
+  completedAt: string | null;
+  createdAt: string;
+}
 
 export interface User {
   id: string;
