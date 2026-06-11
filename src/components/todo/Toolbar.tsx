@@ -1,6 +1,6 @@
 "use client";
 import { useRef, useState } from "react";
-import { Plus, Search, SlidersHorizontal, ArrowUpDown, Eye, EyeOff, X, ChevronDown, Check } from "lucide-react";
+import { Plus, Search, SlidersHorizontal, ArrowUpDown, Eye, EyeOff, X, ChevronDown, Check, FoldVertical, UnfoldVertical } from "lucide-react";
 import { useTodoStore } from "@/store/useTodoStore";
 import { useClickOutside } from "@/hooks/useClickOutside";
 import { STATUS_CONFIG } from "./ui/StatusPill";
@@ -13,7 +13,7 @@ interface ToolbarProps {
 }
 
 export function Toolbar({ onAddTask }: ToolbarProps) {
-  const { filter, setFilter, clearFilters, sort, setSort, hiddenColumns, toggleColumn, groups, tasks, showDoneTasks, toggleShowDoneTasks } = useTodoStore();
+  const { filter, setFilter, clearFilters, sort, setSort, hiddenColumns, toggleColumn, groups, tasks, showDoneTasks, toggleShowDoneTasks, collapseAll, expandAll } = useTodoStore();
 
   const hiddenDoneCount = !showDoneTasks ? tasks.filter((t) => t.status === "done").length : 0;
 
@@ -180,6 +180,21 @@ export function Toolbar({ onAddTask }: ToolbarProps) {
         {showDoneTasks ? <EyeOff className="w-3.5 h-3.5" /> : <Eye className="w-3.5 h-3.5" />}
         <span className="hidden sm:inline">{showDoneTasks ? "Hide done" : "Show done"}</span>
       </button>
+
+      {groups.length > 1 && (
+        <>
+          <button onClick={collapseAll}
+            className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-sm font-medium border bg-white border-slate-200 text-slate-600 hover:bg-slate-50 transition-colors">
+            <FoldVertical className="w-3.5 h-3.5" />
+            <span className="hidden sm:inline">Collapse all</span>
+          </button>
+          <button onClick={expandAll}
+            className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-sm font-medium border bg-white border-slate-200 text-slate-600 hover:bg-slate-50 transition-colors">
+            <UnfoldVertical className="w-3.5 h-3.5" />
+            <span className="hidden sm:inline">Expand all</span>
+          </button>
+        </>
+      )}
 
       {hiddenDoneCount > 0 && <span className="text-xs text-slate-400 whitespace-nowrap">{hiddenDoneCount} done hidden</span>}
     </div>

@@ -99,6 +99,8 @@ interface TodoStore {
   updateGroup: (id: string, updates: Partial<Group>) => void;
   deleteGroup: (id: string) => void;
   toggleGroup: (id: string) => void;
+  collapseAll: () => void;
+  expandAll: () => void;
   reorderGroups: (activeId: string, overId: string) => Promise<void>;
   clearGroupReorderError: () => void;
 
@@ -314,6 +316,9 @@ export const useTodoStore = create<TodoStore>()((set, get) => ({
     set({ groups: get().groups.map((g) => (g.id === id ? { ...g, collapsed } : g)) });
     api("/api/todo/groups", "PATCH", { id, collapsed }).catch(console.error);
   },
+
+  collapseAll: () => set({ groups: get().groups.map((g) => ({ ...g, collapsed: true })) }),
+  expandAll: () => set({ groups: get().groups.map((g) => ({ ...g, collapsed: false })) }),
 
   reorderGroups: async (activeId, overId) => {
     const { groups } = get();

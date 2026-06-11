@@ -90,6 +90,8 @@ interface FollowUpStore {
   deleteGroup: (id: string) => Promise<void>;
   clearGroupDeleteError: () => void;
   toggleGroup: (id: string) => void;
+  collapseAll: () => void;
+  expandAll: () => void;
   reorderGroups: (activeId: string, overId: string) => Promise<void>;
   clearGroupReorderError: () => void;
 
@@ -318,6 +320,9 @@ export const useFollowUpStore = create<FollowUpStore>()((set, get) => ({
     set({ groups: get().groups.map((g) => (g.id === id ? { ...g, collapsed } : g)) });
     api("/api/followup/groups", "PATCH", { id, collapsed }).catch(console.error);
   },
+
+  collapseAll: () => set({ groups: get().groups.map((g) => ({ ...g, collapsed: true })) }),
+  expandAll: () => set({ groups: get().groups.map((g) => ({ ...g, collapsed: false })) }),
 
   reorderGroups: async (activeId, overId) => {
     const { groups } = get();
