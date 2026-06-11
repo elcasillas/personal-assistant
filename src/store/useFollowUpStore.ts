@@ -154,7 +154,7 @@ export const useFollowUpStore = create<FollowUpStore>()((set, get) => ({
               fetch("/api/followup/groups").then((r) => r.json()),
               fetch("/api/followup/items").then((r) => r.json()),
             ]);
-            set({ groups: newGroups, items: newItems, updateCounts: {} });
+            set({ groups: newGroups.map((g: FollowUpGroup) => ({ ...g, collapsed: false })), items: newItems, updateCounts: {} });
             return;
           }
         } catch { /* ignore migration errors, fall through to seed */ }
@@ -167,7 +167,7 @@ export const useFollowUpStore = create<FollowUpStore>()((set, get) => ({
         ]);
         set({ groups: seed.groups, items: seed.items, updateCounts: {} });
       } else {
-        set({ groups, items, updateCounts: updateCounts ?? {} });
+        set({ groups: groups.map((g: FollowUpGroup) => ({ ...g, collapsed: false })), items, updateCounts: updateCounts ?? {} });
       }
     } catch (err) {
       const msg = err instanceof Error ? err.message : String(err);

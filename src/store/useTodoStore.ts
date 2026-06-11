@@ -174,7 +174,7 @@ export const useTodoStore = create<TodoStore>()((set, get) => ({
         ]);
         set({ groups: seed.groups, tasks: seed.tasks, updateCounts: {} });
       } else {
-        set({ groups, tasks, updateCounts: updateCounts ?? {} });
+        set({ groups: groups.map((g: Group) => ({ ...g, collapsed: false })), tasks, updateCounts: updateCounts ?? {} });
       }
     } catch (err) {
       const msg = err instanceof Error ? err.message : String(err);
