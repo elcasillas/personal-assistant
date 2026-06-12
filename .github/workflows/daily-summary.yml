@@ -1,10 +1,9 @@
 name: Daily Summary Routine
 
 on:
-  schedule:
-    # 12:00 UTC = 7:00 AM EST (UTC-5) | 8:00 AM EDT (UTC-4) during daylight saving
-    - cron: '0 12 * * *'
-  workflow_dispatch: # allow manual trigger from GitHub Actions UI
+  # Schedule removed — cron now runs natively via Cloudflare Workers triggers (wrangler.toml).
+  # Keep workflow_dispatch for manual testing of the /api/cron/daily-summary endpoint.
+  workflow_dispatch:
 
 jobs:
   run-daily-summary:
