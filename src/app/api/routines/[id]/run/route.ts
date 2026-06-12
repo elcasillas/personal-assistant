@@ -212,6 +212,12 @@ Execute the routine now and respond in the exact output format specified above.`
     );
   }
 
-  return NextResponse.json({ run: parseRun(runRows[0]) });
+  return NextResponse.json({
+    run: parseRun(runRows[0]),
+    _debug: {
+      instructionsFirst80: routine.instructions.slice(0, 80),
+      outputFormatFirst80: routine.output_format.slice(0, 80),
+    },
+  });
 }
 
