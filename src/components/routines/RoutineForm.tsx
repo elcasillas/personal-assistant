@@ -129,7 +129,7 @@ export default function RoutineForm({ routine, onSave, onScheduleSave, onClose }
       });
 
       if (!cfUpdated && cfError) {
-        setCfWarning(`Schedule saved, but Cloudflare trigger update failed: ${cfError}`);
+        setCfWarning(cfError);
         return; // stay open so user can see warning
       }
 
@@ -166,15 +166,19 @@ export default function RoutineForm({ routine, onSave, onScheduleSave, onClose }
           )}
           {cfWarning && (
             <div className="text-sm text-amber-700 bg-amber-50 border border-amber-200 rounded-lg px-4 py-3">
-              <p className="font-medium mb-1">Schedule saved with a warning</p>
-              <p>{cfWarning}</p>
-              <p className="mt-1 text-xs">The schedule is stored in the database. You may need to update the Cloudflare Worker manually.</p>
+              <p className="font-medium mb-1">Routine saved — schedule trigger warning</p>
+              <p className="text-xs text-amber-800 mt-1">
+                Your routine settings (output format, instructions, etc.) were saved successfully and will be used on the next run.
+              </p>
+              <p className="text-xs text-amber-700 mt-2">
+                The Cloudflare cron trigger could not be updated automatically: {cfWarning}
+              </p>
               <button
                 type="button"
                 onClick={onClose}
-                className="mt-2 text-xs underline text-amber-700 hover:text-amber-900"
+                className="mt-3 text-xs font-medium underline text-amber-700 hover:text-amber-900"
               >
-                Close anyway
+                Close
               </button>
             </div>
           )}

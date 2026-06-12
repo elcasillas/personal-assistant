@@ -57,7 +57,9 @@ export async function POST(req: Request, { params }: { params: Promise<{ id: str
   console.log("[schedule] saved id=%s enabled=%s cron=%s", id, body.scheduleEnabled, body.scheduleCron);
 
   // Rebuild Cloudflare Worker cron triggers from all enabled routine schedules.
-  let cfUpdated = false;
+  // Skip the CF API call when no routines have active schedules — an empty PUT
+  // is either a no-op or can be rejected by the CF API depending on plan.
+  let cfUpdated = true;  // default true = no update needed
   let cfError: string | null = null;
 
   try {
@@ -67,10 +69,15 @@ export async function POST(req: Request, { params }: { params: Promise<{ id: str
       [user.id]
     );
     const uniqueCrons = [...new Set(rows.map((r) => r.schedule_cron).filter(Boolean) as string[])];
-    await putWorkerSchedules(uniqueCrons);
-    cfUpdated = true;
-    console.log("[schedule] CF triggers updated: [%s]", uniqueCrons.join(", ") || "none");
+
+    if (uniqueCrons.length > 0) {
+      await putWorkerSchedules(uniqueCrons);
+      console.log("[schedule] CF triggers updated: [%s]", uniqueCrons.join(", "));
+    } else {
+      console.log("[schedule] no active schedules — skipping CF trigger update");
+    }
   } catch (err) {
+    cfUpdated = false;
     cfError = err instanceof Error ? err.message : String(err);
     console.error("[schedule] CF update failed:", cfError);
   }

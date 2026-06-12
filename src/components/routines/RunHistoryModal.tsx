@@ -190,6 +190,19 @@ export default function RunHistoryModal({ routine, onClose }: RunHistoryModalPro
                   </pre>
                 </div>
               )}
+
+              {selectedRun.outputFormatSnapshot && (
+                <details className="group">
+                  <summary className="cursor-pointer text-xs text-slate-400 hover:text-slate-600 select-none">
+                    Output format used in this run
+                  </summary>
+                  <div className="mt-2 bg-slate-50 border border-slate-200 rounded-lg p-3">
+                    <pre className="text-xs text-slate-500 whitespace-pre-wrap font-mono leading-relaxed">
+                      {selectedRun.outputFormatSnapshot}
+                    </pre>
+                  </div>
+                </details>
+              )}
             </div>
           )}
         </div>
