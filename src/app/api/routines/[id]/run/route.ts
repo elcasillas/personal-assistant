@@ -65,21 +65,18 @@ export async function POST(
   if (routineRows.length === 0)
     return NextResponse.json({ error: "Routine not found" }, { status: 404 });
 
-  // Sync default routine content from source-of-truth before running
+  // Always sync the daily summary routine to canonical defaults before running.
+  // This guarantees the DB and the prompt are always up-to-date regardless of
+  // what string comparison logic may or may not have run previously.
   const row = routineRows[0];
   if (row.name === DAILY_SUMMARY_NAME) {
-    const needsUpdate =
-      row.instructions !== DAILY_SUMMARY_INSTRUCTIONS ||
-      row.output_format !== DAILY_SUMMARY_OUTPUT_FORMAT;
-    if (needsUpdate) {
-      const now = new Date().toISOString();
-      await d1Execute(
-        "UPDATE routines SET instructions = ?, output_format = ?, updated_at = ? WHERE id = ?",
-        [DAILY_SUMMARY_INSTRUCTIONS, DAILY_SUMMARY_OUTPUT_FORMAT, now, row.id]
-      );
-      row.instructions = DAILY_SUMMARY_INSTRUCTIONS;
-      row.output_format = DAILY_SUMMARY_OUTPUT_FORMAT;
-    }
+    const ts = new Date().toISOString();
+    await d1Execute(
+      "UPDATE routines SET instructions = ?, output_format = ?, updated_at = ? WHERE id = ?",
+      [DAILY_SUMMARY_INSTRUCTIONS, DAILY_SUMMARY_OUTPUT_FORMAT, ts, row.id]
+    );
+    row.instructions = DAILY_SUMMARY_INSTRUCTIONS;
+    row.output_format = DAILY_SUMMARY_OUTPUT_FORMAT;
   }
 
   const routine = row;

@@ -46,28 +46,21 @@ async function runCron(req: Request): Promise<Response> {
   }
   const user = userRows[0];
 
-  // Sync default routine content before running (in case DB is stale)
-  const allRoutineRows = await d1Query<RoutineRow>(
+  const routineRows = await d1Query<RoutineRow>(
     `SELECT id, name, instructions, data_sources, output_format
      FROM routines WHERE user_id = ? AND name = ? AND active = 1`,
     [user.id, DAILY_SUMMARY_NAME]
   );
-  if (allRoutineRows.length > 0) {
-    const r = allRoutineRows[0];
-    const needsUpdate =
-      r.instructions !== DAILY_SUMMARY_INSTRUCTIONS ||
-      r.output_format !== DAILY_SUMMARY_OUTPUT_FORMAT;
-    if (needsUpdate) {
-      const ts = new Date().toISOString();
-      await d1Execute(
-        "UPDATE routines SET instructions = ?, output_format = ?, updated_at = ? WHERE id = ?",
-        [DAILY_SUMMARY_INSTRUCTIONS, DAILY_SUMMARY_OUTPUT_FORMAT, ts, r.id]
-      );
-      r.instructions = DAILY_SUMMARY_INSTRUCTIONS;
-      r.output_format = DAILY_SUMMARY_OUTPUT_FORMAT;
-    }
+  if (routineRows.length > 0) {
+    const r = routineRows[0];
+    const ts = new Date().toISOString();
+    await d1Execute(
+      "UPDATE routines SET instructions = ?, output_format = ?, updated_at = ? WHERE id = ?",
+      [DAILY_SUMMARY_INSTRUCTIONS, DAILY_SUMMARY_OUTPUT_FORMAT, ts, r.id]
+    );
+    r.instructions = DAILY_SUMMARY_INSTRUCTIONS;
+    r.output_format = DAILY_SUMMARY_OUTPUT_FORMAT;
   }
-  const routineRows = allRoutineRows;
   if (routineRows.length === 0) {
     return NextResponse.json({ error: "Daily Due and Overdue Summary routine not found or inactive" }, { status: 404 });
   }

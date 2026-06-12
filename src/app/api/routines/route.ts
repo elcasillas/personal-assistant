@@ -68,22 +68,18 @@ export async function GET() {
     [user.id]
   );
 
-  // Auto-migrate: keep the default routine's content in sync with DEFAULT_ROUTINE
+  // Always sync the default routine to canonical defaults on load.
   const defaultRow = rows.find((r) => r.name === DEFAULT_ROUTINE.name);
   if (defaultRow) {
-    const instructionsChanged = defaultRow.instructions !== DEFAULT_ROUTINE.instructions;
-    const outputFormatChanged = defaultRow.output_format !== DEFAULT_ROUTINE.outputFormat;
-    if (instructionsChanged || outputFormatChanged) {
-      const now = new Date().toISOString();
-      await d1Execute(
-        "UPDATE routines SET instructions = ?, output_format = ?, updated_at = ? WHERE id = ?",
-        [DEFAULT_ROUTINE.instructions, DEFAULT_ROUTINE.outputFormat, now, defaultRow.id]
-      );
-      rows = await d1Query<RoutineRow>(
-        "SELECT * FROM routines WHERE user_id = ? ORDER BY created_at ASC",
-        [user.id]
-      );
-    }
+    const now = new Date().toISOString();
+    await d1Execute(
+      "UPDATE routines SET instructions = ?, output_format = ?, updated_at = ? WHERE id = ?",
+      [DEFAULT_ROUTINE.instructions, DEFAULT_ROUTINE.outputFormat, now, defaultRow.id]
+    );
+    rows = await d1Query<RoutineRow>(
+      "SELECT * FROM routines WHERE user_id = ? ORDER BY created_at ASC",
+      [user.id]
+    );
   }
 
   // Auto-seed default routine on first load
