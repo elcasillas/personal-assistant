@@ -3,11 +3,7 @@ import { headers } from "next/headers";
 import { getSessionFromHeaders } from "@/lib/auth";
 import { d1Query, d1Execute } from "@/lib/d1";
 import { v4 as uuidv4 } from "uuid";
-import {
-  DAILY_SUMMARY_NAME,
-  DAILY_SUMMARY_INSTRUCTIONS,
-  DAILY_SUMMARY_OUTPUT_FORMAT,
-} from "@/lib/routine-defaults";
+import { DAILY_SUMMARY_NAME, DAILY_SUMMARY_INSTRUCTIONS, DAILY_SUMMARY_OUTPUT_FORMAT } from "@/lib/routine-defaults";
 
 export const dynamic = "force-dynamic";
 
@@ -67,24 +63,6 @@ export async function GET() {
     "SELECT * FROM routines WHERE user_id = ? ORDER BY created_at ASC",
     [user.id]
   );
-
-  // Upgrade any daily summary routine that still has the old format.
-  const staleRow = rows.find(
-    (r) =>
-      r.name === DEFAULT_ROUTINE.name ||
-      (r.output_format.includes("Daily Summary") && !r.output_format.includes("EXECUTIVE SUMMARY"))
-  );
-  if (staleRow) {
-    const now = new Date().toISOString();
-    await d1Execute(
-      "UPDATE routines SET instructions = ?, output_format = ?, updated_at = ? WHERE id = ?",
-      [DEFAULT_ROUTINE.instructions, DEFAULT_ROUTINE.outputFormat, now, staleRow.id]
-    );
-    rows = await d1Query<RoutineRow>(
-      "SELECT * FROM routines WHERE user_id = ? ORDER BY created_at ASC",
-      [user.id]
-    );
-  }
 
   // Auto-seed default routine on first load
   if (rows.length === 0) {

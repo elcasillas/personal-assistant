@@ -4,11 +4,6 @@ import { getSessionFromHeaders } from "@/lib/auth";
 import { d1Query, d1Execute } from "@/lib/d1";
 import { v4 as uuidv4 } from "uuid";
 import OpenAI from "openai";
-import {
-  DAILY_SUMMARY_NAME,
-  DAILY_SUMMARY_INSTRUCTIONS,
-  DAILY_SUMMARY_OUTPUT_FORMAT,
-} from "@/lib/routine-defaults";
 
 export const dynamic = "force-dynamic";
 
@@ -19,6 +14,7 @@ type RoutineRow = {
   data_sources: string;
   output_format: string;
   active: number;
+  updated_at: string;
 };
 
 type RoutineRunRow = {
@@ -32,6 +28,7 @@ type RoutineRunRow = {
   started_at: string | null;
   completed_at: string | null;
   created_at: string;
+  output_format_snapshot: string | null;
 };
 
 function parseRun(row: RoutineRunRow) {
@@ -46,6 +43,7 @@ function parseRun(row: RoutineRunRow) {
     startedAt: row.started_at ?? null,
     completedAt: row.completed_at ?? null,
     createdAt: row.created_at,
+    outputFormatSnapshot: row.output_format_snapshot ?? null,
   };
 }
 
@@ -58,42 +56,39 @@ export async function POST(
 
   const { id: routineId } = await params;
 
+  // Fetch the latest routine definition directly from the DB — DB is source of truth.
   const routineRows = await d1Query<RoutineRow>(
-    "SELECT id, name, instructions, data_sources, output_format, active FROM routines WHERE id = ? AND user_id = ?",
+    "SELECT id, name, instructions, data_sources, output_format, active, updated_at FROM routines WHERE id = ? AND user_id = ?",
     [routineId, user.id]
   );
   if (routineRows.length === 0)
     return NextResponse.json({ error: "Routine not found" }, { status: 404 });
 
-  // Upgrade the routine if it has the old format (no "EXECUTIVE SUMMARY" section).
-  // Matches by name OR by stale content so renaming the routine never breaks the upgrade.
-  const row = routineRows[0];
-  const isStale =
-    row.name === DAILY_SUMMARY_NAME ||
-    (row.output_format.includes("Daily Summary") && !row.output_format.includes("EXECUTIVE SUMMARY"));
-  if (isStale) {
-    const ts = new Date().toISOString();
-    await d1Execute(
-      "UPDATE routines SET instructions = ?, output_format = ?, updated_at = ? WHERE id = ?",
-      [DAILY_SUMMARY_INSTRUCTIONS, DAILY_SUMMARY_OUTPUT_FORMAT, ts, row.id]
-    );
-    row.instructions = DAILY_SUMMARY_INSTRUCTIONS;
-    row.output_format = DAILY_SUMMARY_OUTPUT_FORMAT;
-  }
+  const routine = routineRows[0];
 
-  const routine = row;
+  // Diagnostic logging — visible in Cloudflare Workers logs.
+  console.log("[routine-run] id=%s name=%s updated_at=%s outputFormat[0:100]=%s",
+    routine.id,
+    routine.name,
+    routine.updated_at,
+    routine.output_format.slice(0, 100).replace(/\n/g, "\\n")
+  );
+
   const dataSources = JSON.parse(routine.data_sources || "[]") as string[];
   const now = new Date().toISOString();
   const runId = uuidv4();
 
-  // Create the run record in "running" state immediately
+  // Create the run record in "running" state immediately.
   await d1Execute(
-    `INSERT INTO routine_runs (id, user_id, routine_id, routine_name, output, status, error, started_at, completed_at, created_at)
-     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
-    [runId, user.id, routineId, routine.name, "", "running", null, now, null, now]
+    `INSERT INTO routine_runs
+       (id, user_id, routine_id, routine_name, output, status, error,
+        started_at, completed_at, created_at, output_format_snapshot)
+     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+    [runId, user.id, routineId, routine.name, "", "running", null,
+     now, null, now, routine.output_format]
   );
 
-  // Fetch data based on data sources
+  // Fetch data based on configured data sources.
   let tasks: Record<string, unknown>[] = [];
   let followups: Record<string, unknown>[] = [];
 
@@ -216,4 +211,3 @@ Execute the routine now and respond in the exact output format specified above.`
 
   return NextResponse.json({ run: parseRun(runRows[0]) });
 }
-

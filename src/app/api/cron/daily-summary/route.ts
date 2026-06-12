@@ -2,11 +2,7 @@ import { NextResponse } from "next/server";
 import { d1Query, d1Execute } from "@/lib/d1";
 import { v4 as uuidv4 } from "uuid";
 import OpenAI from "openai";
-import {
-  DAILY_SUMMARY_NAME,
-  DAILY_SUMMARY_INSTRUCTIONS,
-  DAILY_SUMMARY_OUTPUT_FORMAT,
-} from "@/lib/routine-defaults";
+import { DAILY_SUMMARY_NAME } from "@/lib/routine-defaults";
 
 export const dynamic = "force-dynamic";
 
@@ -17,6 +13,7 @@ type RoutineRow = {
   instructions: string;
   data_sources: string;
   output_format: string;
+  updated_at: string;
 };
 
 export async function POST(req: Request) {
@@ -46,40 +43,38 @@ async function runCron(req: Request): Promise<Response> {
   }
   const user = userRows[0];
 
-  // Find the daily summary routine by name OR by old format content.
-  const allRoutineRows = await d1Query<RoutineRow>(
-    `SELECT id, name, instructions, data_sources, output_format
-     FROM routines WHERE user_id = ? AND active = 1`,
-    [user.id]
+  // Fetch the routine directly from DB — DB is the source of truth.
+  const routineRows = await d1Query<RoutineRow>(
+    `SELECT id, name, instructions, data_sources, output_format, updated_at
+     FROM routines WHERE user_id = ? AND name = ? AND active = 1`,
+    [user.id, DAILY_SUMMARY_NAME]
   );
-  const routineRows = allRoutineRows.filter(
-    (r) =>
-      r.name === DAILY_SUMMARY_NAME ||
-      (r.output_format.includes("Daily Summary") && !r.output_format.includes("EXECUTIVE SUMMARY")) ||
-      r.output_format.includes("EXECUTIVE SUMMARY")
-  );
-  if (routineRows.length > 0) {
-    const r = routineRows[0];
-    const ts = new Date().toISOString();
-    await d1Execute(
-      "UPDATE routines SET instructions = ?, output_format = ?, updated_at = ? WHERE id = ?",
-      [DAILY_SUMMARY_INSTRUCTIONS, DAILY_SUMMARY_OUTPUT_FORMAT, ts, r.id]
-    );
-    r.instructions = DAILY_SUMMARY_INSTRUCTIONS;
-    r.output_format = DAILY_SUMMARY_OUTPUT_FORMAT;
-  }
   if (routineRows.length === 0) {
-    return NextResponse.json({ error: "Daily Due and Overdue Summary routine not found or inactive" }, { status: 404 });
+    return NextResponse.json(
+      { error: `Routine not found or inactive: "${DAILY_SUMMARY_NAME}"` },
+      { status: 404 }
+    );
   }
   const routine = routineRows[0];
+
+  console.log("[cron-run] id=%s name=%s updated_at=%s outputFormat[0:100]=%s",
+    routine.id,
+    routine.name,
+    routine.updated_at,
+    routine.output_format.slice(0, 100).replace(/\n/g, "\\n")
+  );
+
   const dataSources = JSON.parse(routine.data_sources || "[]") as string[];
   const now = new Date().toISOString();
   const runId = uuidv4();
 
   await d1Execute(
-    `INSERT INTO routine_runs (id, user_id, routine_id, routine_name, output, status, error, started_at, completed_at, created_at)
-     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
-    [runId, user.id, routine.id, routine.name, "", "running", null, now, null, now]
+    `INSERT INTO routine_runs
+       (id, user_id, routine_id, routine_name, output, status, error,
+        started_at, completed_at, created_at, output_format_snapshot)
+     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+    [runId, user.id, routine.id, routine.name, "", "running", null,
+     now, null, now, routine.output_format]
   );
 
   let tasks: Record<string, unknown>[] = [];
@@ -188,4 +183,3 @@ Execute the routine now and respond in the exact output format specified above.`
     { status: finalStatus === "success" ? 200 : 500 }
   );
 }
-

@@ -13,6 +13,7 @@ const migrations = [
   { name: "idx_routine_runs_created_at", sql: "CREATE INDEX IF NOT EXISTS idx_routine_runs_created_at ON routine_runs (created_at)" },
   { name: "notes.archived",    sql: "ALTER TABLE notes ADD COLUMN archived INTEGER NOT NULL DEFAULT 0" },
   { name: "notes.archived_at", sql: "ALTER TABLE notes ADD COLUMN archived_at TEXT" },
+  { name: "routine_runs.output_format_snapshot", sql: "ALTER TABLE routine_runs ADD COLUMN output_format_snapshot TEXT" },
 ];
 
 export async function POST() {

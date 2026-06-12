@@ -16,6 +16,7 @@ type RoutineRunRow = {
   started_at: string | null;
   completed_at: string | null;
   created_at: string;
+  output_format_snapshot: string | null;
 };
 
 function parseRun(row: RoutineRunRow) {
@@ -30,6 +31,7 @@ function parseRun(row: RoutineRunRow) {
     startedAt: row.started_at ?? null,
     completedAt: row.completed_at ?? null,
     createdAt: row.created_at,
+    outputFormatSnapshot: row.output_format_snapshot ?? null,
   };
 }
 

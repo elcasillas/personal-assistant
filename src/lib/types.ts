@@ -92,6 +92,7 @@ export interface RoutineRun {
   startedAt: string | null;
   completedAt: string | null;
   createdAt: string;
+  outputFormatSnapshot: string | null;
 }
 
 export interface User {
