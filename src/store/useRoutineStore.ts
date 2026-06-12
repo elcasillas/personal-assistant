@@ -1,6 +1,16 @@
 import { create } from "zustand";
 import type { Routine, RoutineRun } from "@/lib/types";
 
+export interface SchedulePayload {
+  scheduleEnabled: boolean;
+  scheduleFrequency: string | null;
+  scheduleTime: string | null;
+  scheduleWeekday: number | null;
+  scheduleMonthDay: number | null;
+  scheduleTimezone: string;
+  scheduleCron: string | null;
+}
+
 interface RoutineStore {
   routines: Routine[];
   loading: boolean;
@@ -11,6 +21,7 @@ interface RoutineStore {
   loadData: () => Promise<void>;
   createRoutine: (data: Omit<Routine, "id" | "userId" | "lastRunAt" | "createdAt" | "updatedAt">) => Promise<Routine>;
   updateRoutine: (id: string, data: Partial<Omit<Routine, "id" | "userId" | "createdAt" | "updatedAt">>) => Promise<void>;
+  updateSchedule: (id: string, data: SchedulePayload) => Promise<{ cfUpdated: boolean; cfError: string | null }>;
   deleteRoutine: (id: string) => Promise<void>;
   updateLastRunAt: (id: string, lastRunAt: string) => void;
   loadRunHistory: (routineId: string) => Promise<void>;
@@ -59,6 +70,32 @@ export const useRoutineStore = create<RoutineStore>((set, get) => ({
     set((s) => ({
       routines: s.routines.map((r) => (r.id === id ? updated : r)),
     }));
+  },
+
+  async updateSchedule(id, data) {
+    const res = await fetch(`/api/routines/${id}/schedule`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(data),
+    });
+    if (!res.ok) {
+      const body = await res.json() as { error?: string };
+      throw new Error(body.error ?? "Failed to update schedule");
+    }
+    const result = await res.json() as { cfUpdated: boolean; cfError: string | null };
+    set((s) => ({
+      routines: s.routines.map((r) =>
+        r.id === id
+          ? {
+              ...r,
+              ...data,
+              scheduleFrequency: (data.scheduleFrequency as Routine["scheduleFrequency"]),
+              lastScheduleUpdatedAt: new Date().toISOString(),
+            }
+          : r
+      ),
+    }));
+    return result;
   },
 
   async deleteRoutine(id) {

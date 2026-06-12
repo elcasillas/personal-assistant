@@ -79,6 +79,15 @@ export interface Routine {
   lastRunAt: string | null;
   createdAt: string;
   updatedAt: string;
+  // Schedule
+  scheduleEnabled: boolean;
+  scheduleFrequency: "daily" | "weekly" | "monthly" | "custom" | null;
+  scheduleTime: string | null;
+  scheduleWeekday: number | null;
+  scheduleMonthDay: number | null;
+  scheduleTimezone: string;
+  scheduleCron: string | null;
+  lastScheduleUpdatedAt: string | null;
 }
 
 export interface RoutineRun {

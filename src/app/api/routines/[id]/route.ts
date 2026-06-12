@@ -18,6 +18,14 @@ type RoutineRow = {
   last_run_at: string | null;
   created_at: string;
   updated_at: string;
+  schedule_enabled: number | null;
+  schedule_frequency: string | null;
+  schedule_time: string | null;
+  schedule_weekday: number | null;
+  schedule_month_day: number | null;
+  schedule_timezone: string | null;
+  schedule_cron: string | null;
+  last_schedule_updated_at: string | null;
 };
 
 function parseRoutine(row: RoutineRow) {
@@ -34,6 +42,14 @@ function parseRoutine(row: RoutineRow) {
     lastRunAt: row.last_run_at ?? null,
     createdAt: row.created_at,
     updatedAt: row.updated_at,
+    scheduleEnabled: row.schedule_enabled === 1,
+    scheduleFrequency: (row.schedule_frequency ?? null) as "daily" | "weekly" | "monthly" | "custom" | null,
+    scheduleTime: row.schedule_time ?? null,
+    scheduleWeekday: row.schedule_weekday ?? null,
+    scheduleMonthDay: row.schedule_month_day ?? null,
+    scheduleTimezone: row.schedule_timezone ?? "America/New_York",
+    scheduleCron: row.schedule_cron ?? null,
+    lastScheduleUpdatedAt: row.last_schedule_updated_at ?? null,
   };
 }
 

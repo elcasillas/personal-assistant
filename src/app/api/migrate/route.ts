@@ -14,6 +14,15 @@ const migrations = [
   { name: "notes.archived",    sql: "ALTER TABLE notes ADD COLUMN archived INTEGER NOT NULL DEFAULT 0" },
   { name: "notes.archived_at", sql: "ALTER TABLE notes ADD COLUMN archived_at TEXT" },
   { name: "routine_runs.output_format_snapshot", sql: "ALTER TABLE routine_runs ADD COLUMN output_format_snapshot TEXT" },
+  // Routine schedule fields
+  { name: "routines.schedule_enabled",           sql: "ALTER TABLE routines ADD COLUMN schedule_enabled INTEGER NOT NULL DEFAULT 0" },
+  { name: "routines.schedule_frequency",         sql: "ALTER TABLE routines ADD COLUMN schedule_frequency TEXT" },
+  { name: "routines.schedule_time",              sql: "ALTER TABLE routines ADD COLUMN schedule_time TEXT" },
+  { name: "routines.schedule_weekday",           sql: "ALTER TABLE routines ADD COLUMN schedule_weekday INTEGER" },
+  { name: "routines.schedule_month_day",         sql: "ALTER TABLE routines ADD COLUMN schedule_month_day INTEGER" },
+  { name: "routines.schedule_timezone",          sql: "ALTER TABLE routines ADD COLUMN schedule_timezone TEXT NOT NULL DEFAULT 'America/New_York'" },
+  { name: "routines.schedule_cron",              sql: "ALTER TABLE routines ADD COLUMN schedule_cron TEXT" },
+  { name: "routines.last_schedule_updated_at",   sql: "ALTER TABLE routines ADD COLUMN last_schedule_updated_at TEXT" },
 ];
 
 export async function POST() {

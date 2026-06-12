@@ -1,17 +1,19 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { Plus, Play, Pencil, Trash2, ToggleLeft, ToggleRight, Clock, History } from "lucide-react";
+import { Plus, Play, Pencil, Trash2, ToggleLeft, ToggleRight, Clock, History, CalendarClock, CalendarOff } from "lucide-react";
 import { useRoutineStore } from "@/store/useRoutineStore";
 import type { Routine, RoutineRun } from "@/lib/types";
+import type { SchedulePayload } from "@/store/useRoutineStore";
 import RoutineForm from "./RoutineForm";
 import RunResultModal from "./RunResultModal";
 import RunHistoryModal from "./RunHistoryModal";
+import { describeCron, getNextRunDate, formatNextRun } from "@/lib/cron-utils";
 
 export default function RoutineList() {
   const {
     routines, loading, error,
-    loadData, createRoutine, updateRoutine, deleteRoutine, updateLastRunAt, prependRun,
+    loadData, createRoutine, updateRoutine, updateSchedule, deleteRoutine, updateLastRunAt, prependRun,
   } = useRoutineStore();
 
   const [formOpen, setFormOpen] = useState(false);
@@ -33,13 +35,18 @@ export default function RoutineList() {
 
   async function handleSave(
     data: Omit<Routine, "id" | "userId" | "lastRunAt" | "createdAt" | "updatedAt">
-  ) {
+  ): Promise<{ id: string }> {
     if (editTarget) {
       await updateRoutine(editTarget.id, data);
+      return { id: editTarget.id };
     } else {
-      await createRoutine(data);
+      const created = await createRoutine(data);
+      return { id: created.id };
     }
-    setEditTarget(null);
+  }
+
+  async function handleScheduleSave(id: string, data: SchedulePayload) {
+    return updateSchedule(id, data);
   }
 
   async function handleToggleActive(routine: Routine) {
@@ -177,6 +184,40 @@ export default function RoutineList() {
                       </>
                     )}
                   </div>
+
+                  {/* Schedule info */}
+                  {routine.scheduleEnabled && routine.scheduleCron ? (
+                    <div className="flex items-center gap-1.5 mt-1 text-xs text-indigo-600">
+                      <CalendarClock className="w-3.5 h-3.5 shrink-0" />
+                      <span>
+                        {describeCron(
+                          routine.scheduleFrequency ?? "custom",
+                          routine.scheduleTime ?? "00:00",
+                          routine.scheduleTimezone,
+                          routine.scheduleWeekday ?? undefined,
+                          routine.scheduleMonthDay ?? undefined,
+                          routine.scheduleCron
+                        )}
+                        {routine.scheduleFrequency !== "custom" && routine.scheduleTime && (
+                          <>
+                            {" · Next: "}
+                            {formatNextRun(getNextRunDate(
+                              routine.scheduleFrequency ?? "daily",
+                              routine.scheduleTime,
+                              routine.scheduleTimezone,
+                              routine.scheduleWeekday ?? undefined,
+                              routine.scheduleMonthDay ?? undefined
+                            ))}
+                          </>
+                        )}
+                      </span>
+                    </div>
+                  ) : (
+                    <div className="flex items-center gap-1.5 mt-1 text-xs text-slate-300">
+                      <CalendarOff className="w-3.5 h-3.5 shrink-0" />
+                      <span>No schedule</span>
+                    </div>
+                  )}
                 </div>
 
                 {/* Actions */}
@@ -264,6 +305,7 @@ export default function RoutineList() {
         <RoutineForm
           routine={editTarget ?? undefined}
           onSave={handleSave}
+          onScheduleSave={handleScheduleSave}
           onClose={() => { setFormOpen(false); setEditTarget(null); }}
         />
       )}
