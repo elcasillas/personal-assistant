@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { X, Loader2, AlertCircle, CheckCircle2, Clock, ChevronLeft, RefreshCw } from "lucide-react";
+import { X, Loader2, AlertCircle, CheckCircle2, Clock, ChevronLeft, RefreshCw, Trash2 } from "lucide-react";
 import type { Routine, RoutineRun } from "@/lib/types";
 import { useRoutineStore } from "@/store/useRoutineStore";
 
@@ -50,8 +50,11 @@ function firstLine(text: string, max = 120) {
 }
 
 export default function RunHistoryModal({ routine, onClose }: RunHistoryModalProps) {
-  const { runHistory, runHistoryLoading, loadRunHistory } = useRoutineStore();
+  const { runHistory, runHistoryLoading, loadRunHistory, deleteRun } = useRoutineStore();
   const [selectedRun, setSelectedRun] = useState<RoutineRun | null>(null);
+  const [confirmDeleteId, setConfirmDeleteId] = useState<string | null>(null);
+  const [deleteError, setDeleteError] = useState<string | null>(null);
+  const [deleting, setDeleting] = useState(false);
 
   const runs = runHistory[routine.id] ?? [];
   const loading = runHistoryLoading[routine.id] ?? false;
@@ -62,7 +65,7 @@ export default function RunHistoryModal({ routine, onClose }: RunHistoryModalPro
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4">
-      <div className="bg-white rounded-xl shadow-xl w-full max-w-2xl max-h-[85vh] flex flex-col">
+      <div className="relative bg-white rounded-xl shadow-xl w-full max-w-2xl max-h-[85vh] flex flex-col">
         {/* Header */}
         <div className="flex items-center justify-between px-6 py-4 border-b border-slate-200">
           <div className="flex items-center gap-2">
@@ -129,10 +132,10 @@ export default function RunHistoryModal({ routine, onClose }: RunHistoryModalPro
               {!loading && runs.length > 0 && (
                 <ul className="divide-y divide-slate-100">
                   {runs.map((run) => (
-                    <li key={run.id}>
+                    <li key={run.id} className="flex items-stretch">
                       <button
                         onClick={() => setSelectedRun(run)}
-                        className="w-full text-left px-6 py-4 hover:bg-slate-50 transition-colors"
+                        className="flex-1 text-left px-6 py-4 hover:bg-slate-50 transition-colors"
                       >
                         <div className="flex items-start justify-between gap-3">
                           <div className="flex-1 min-w-0">
@@ -156,6 +159,13 @@ export default function RunHistoryModal({ routine, onClose }: RunHistoryModalPro
                           <ChevronLeft className="w-4 h-4 text-slate-300 rotate-180 shrink-0 mt-0.5" />
                         </div>
                       </button>
+                      <button
+                        onClick={(e) => { e.stopPropagation(); setConfirmDeleteId(run.id); setDeleteError(null); }}
+                        className="px-3 text-slate-300 hover:text-red-500 hover:bg-red-50 transition-colors border-l border-slate-100"
+                        aria-label="Delete run"
+                      >
+                        <Trash2 className="w-4 h-4" />
+                      </button>
                     </li>
                   ))}
                 </ul>
@@ -166,14 +176,23 @@ export default function RunHistoryModal({ routine, onClose }: RunHistoryModalPro
           {/* ── Detail view ── */}
           {selectedRun && (
             <div className="px-6 py-5 space-y-4">
-              <div className="flex items-center gap-3 flex-wrap">
-                {statusBadge(selectedRun.status)}
-                <span className="text-xs text-slate-500">
-                  Started: {formatDateTime(selectedRun.startedAt)}
-                </span>
-                <span className="text-xs text-slate-500">
-                  Completed: {formatDateTime(selectedRun.completedAt)}
-                </span>
+              <div className="flex items-center justify-between gap-3 flex-wrap">
+                <div className="flex items-center gap-3 flex-wrap">
+                  {statusBadge(selectedRun.status)}
+                  <span className="text-xs text-slate-500">
+                    Started: {formatDateTime(selectedRun.startedAt)}
+                  </span>
+                  <span className="text-xs text-slate-500">
+                    Completed: {formatDateTime(selectedRun.completedAt)}
+                  </span>
+                </div>
+                <button
+                  onClick={() => { setConfirmDeleteId(selectedRun.id); setDeleteError(null); }}
+                  className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium text-red-600 border border-red-200 rounded-lg hover:bg-red-50 transition-colors"
+                >
+                  <Trash2 className="w-3.5 h-3.5" />
+                  Delete
+                </button>
               </div>
 
               {selectedRun.status === "failed" && selectedRun.error && (
@@ -206,6 +225,51 @@ export default function RunHistoryModal({ routine, onClose }: RunHistoryModalPro
             </div>
           )}
         </div>
+
+        {/* Confirm delete dialog */}
+        {confirmDeleteId && (
+          <div className="absolute inset-0 z-10 flex items-center justify-center bg-black/40 rounded-xl">
+            <div className="bg-white rounded-xl shadow-xl mx-4 p-6 max-w-sm w-full space-y-4">
+              <h3 className="text-sm font-semibold text-slate-900">Delete this summary?</h3>
+              <p className="text-sm text-slate-600">
+                Are you sure you want to delete this historical summary? This action cannot be undone.
+              </p>
+              {deleteError && (
+                <p className="text-xs text-red-600 bg-red-50 border border-red-200 rounded-lg px-3 py-2">
+                  {deleteError}
+                </p>
+              )}
+              <div className="flex justify-end gap-2">
+                <button
+                  onClick={() => { setConfirmDeleteId(null); setDeleteError(null); }}
+                  disabled={deleting}
+                  className="px-4 py-2 text-sm font-medium text-slate-700 bg-slate-100 hover:bg-slate-200 rounded-lg transition-colors disabled:opacity-40"
+                >
+                  Cancel
+                </button>
+                <button
+                  onClick={async () => {
+                    setDeleting(true);
+                    try {
+                      await deleteRun(routine.id, confirmDeleteId);
+                      if (selectedRun?.id === confirmDeleteId) setSelectedRun(null);
+                      setConfirmDeleteId(null);
+                    } catch (err) {
+                      setDeleteError(err instanceof Error ? err.message : "Delete failed");
+                    } finally {
+                      setDeleting(false);
+                    }
+                  }}
+                  disabled={deleting}
+                  className="flex items-center gap-1.5 px-4 py-2 text-sm font-medium text-white bg-red-600 hover:bg-red-700 rounded-lg transition-colors disabled:opacity-40"
+                >
+                  {deleting ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Trash2 className="w-3.5 h-3.5" />}
+                  Delete
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
 
         {/* Footer */}
         <div className="px-6 py-4 border-t border-slate-200 flex justify-between items-center">

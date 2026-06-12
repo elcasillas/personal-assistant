@@ -25,6 +25,7 @@ interface RoutineStore {
   deleteRoutine: (id: string) => Promise<void>;
   updateLastRunAt: (id: string, lastRunAt: string) => void;
   loadRunHistory: (routineId: string) => Promise<void>;
+  deleteRun: (routineId: string, runId: string) => Promise<void>;
   prependRun: (routineId: string, run: RoutineRun) => void;
 }
 
@@ -126,6 +127,20 @@ export const useRoutineStore = create<RoutineStore>((set, get) => ({
     } catch {
       set((s) => ({ runHistoryLoading: { ...s.runHistoryLoading, [routineId]: false } }));
     }
+  },
+
+  async deleteRun(routineId, runId) {
+    const res = await fetch(`/api/routines/${routineId}/runs/${runId}`, { method: "DELETE" });
+    if (!res.ok) {
+      const body = await res.json() as { error?: string };
+      throw new Error(body.error ?? "Failed to delete run");
+    }
+    set((s) => ({
+      runHistory: {
+        ...s.runHistory,
+        [routineId]: (s.runHistory[routineId] ?? []).filter((r) => r.id !== runId),
+      },
+    }));
   },
 
   prependRun(routineId, run) {

@@ -138,17 +138,20 @@ export async function POST(
 
   const userPrompt = `Today's date: ${today}
 
+You are executing the following routine. Generate EXACTLY ONE response — no preamble, no extra sections.
+
 ROUTINE: ${routine.name}
 
 INSTRUCTIONS:
 ${routine.instructions}
 
-OUTPUT FORMAT:
-${routine.output_format}
-
+CURRENT DATA:
 ${dataSection}
 
-Execute the routine now and respond in the exact output format specified above.`;
+OUTPUT TEMPLATE:
+Fill in the template below completely. Replace every [bracketed placeholder] with real data from CURRENT DATA. Do not reproduce any placeholder text literally — every bracket must contain actual content. Omit sections that have no relevant data.
+
+${routine.output_format}`;
 
   const openai = new OpenAI({
     baseURL: "https://openrouter.ai/api/v1",
@@ -172,7 +175,7 @@ Execute the routine now and respond in the exact output format specified above.`
         {
           role: "system",
           content:
-            "You are Linda, a personal executive assistant. Execute the given routine exactly as instructed. Be concise and professional. Do not create, update, or delete any records.",
+            "You are Linda, a personal executive assistant. Execute routines exactly as instructed. Output only the filled-in result — no duplicate sections, no template placeholders, no meta-commentary. Be concise and professional. Do not create, update, or delete any records.",
         },
         { role: "user", content: userPrompt },
       ],
