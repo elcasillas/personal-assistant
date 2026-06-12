@@ -15,6 +15,16 @@ type RoutineRow = {
 };
 
 export async function POST(req: Request) {
+  try {
+    return await runCron(req);
+  } catch (err) {
+    const message = err instanceof Error ? err.message : String(err);
+    console.error("[cron] unhandled error:", message);
+    return NextResponse.json({ error: message }, { status: 500 });
+  }
+}
+
+async function runCron(req: Request): Promise<Response> {
   const cronSecret = process.env.CRON_SECRET;
   const auth = req.headers.get("Authorization");
   if (!cronSecret || auth !== `Bearer ${cronSecret}`) {
@@ -156,3 +166,4 @@ Execute the routine now and respond in the exact output format specified above.`
     { status: finalStatus === "success" ? 200 : 500 }
   );
 }
+
