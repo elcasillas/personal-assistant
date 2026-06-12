@@ -65,11 +65,13 @@ export async function POST(
   if (routineRows.length === 0)
     return NextResponse.json({ error: "Routine not found" }, { status: 404 });
 
-  // Always sync the daily summary routine to canonical defaults before running.
-  // This guarantees the DB and the prompt are always up-to-date regardless of
-  // what string comparison logic may or may not have run previously.
+  // Upgrade the routine if it has the old format (no "EXECUTIVE SUMMARY" section).
+  // Matches by name OR by stale content so renaming the routine never breaks the upgrade.
   const row = routineRows[0];
-  if (row.name === DAILY_SUMMARY_NAME) {
+  const isStale =
+    row.name === DAILY_SUMMARY_NAME ||
+    (row.output_format.includes("Daily Summary") && !row.output_format.includes("EXECUTIVE SUMMARY"));
+  if (isStale) {
     const ts = new Date().toISOString();
     await d1Execute(
       "UPDATE routines SET instructions = ?, output_format = ?, updated_at = ? WHERE id = ?",
@@ -212,12 +214,6 @@ Execute the routine now and respond in the exact output format specified above.`
     );
   }
 
-  return NextResponse.json({
-    run: parseRun(runRows[0]),
-    _debug: {
-      instructionsFirst80: routine.instructions.slice(0, 80),
-      outputFormatFirst80: routine.output_format.slice(0, 80),
-    },
-  });
+  return NextResponse.json({ run: parseRun(runRows[0]) });
 }
 

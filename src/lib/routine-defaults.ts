@@ -1,4 +1,4 @@
-export const DAILY_SUMMARY_NAME = "Daily Due and Overdue Summary";
+export const DAILY_SUMMARY_NAME = "Daily Action Summary";
 
 export const DAILY_SUMMARY_INSTRUCTIONS = `Generate an executive-friendly daily summary of all Tasks and Follow-ups that are due today or overdue.
 

@@ -46,10 +46,17 @@ async function runCron(req: Request): Promise<Response> {
   }
   const user = userRows[0];
 
-  const routineRows = await d1Query<RoutineRow>(
+  // Find the daily summary routine by name OR by old format content.
+  const allRoutineRows = await d1Query<RoutineRow>(
     `SELECT id, name, instructions, data_sources, output_format
-     FROM routines WHERE user_id = ? AND name = ? AND active = 1`,
-    [user.id, DAILY_SUMMARY_NAME]
+     FROM routines WHERE user_id = ? AND active = 1`,
+    [user.id]
+  );
+  const routineRows = allRoutineRows.filter(
+    (r) =>
+      r.name === DAILY_SUMMARY_NAME ||
+      (r.output_format.includes("Daily Summary") && !r.output_format.includes("EXECUTIVE SUMMARY")) ||
+      r.output_format.includes("EXECUTIVE SUMMARY")
   );
   if (routineRows.length > 0) {
     const r = routineRows[0];

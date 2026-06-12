@@ -346,15 +346,23 @@ export async function POST(req: Request) {
       : Promise.resolve([] as { id: string; name: string; trigger_phrases: string; instructions: string; output_format: string }[]),
   ]);
 
-  // Always sync daily summary to canonical defaults so the AI uses the current format.
+  // Always use canonical format for the daily summary routine regardless of DB content.
+  // Matches by name OR by stale format content so renaming never breaks the upgrade.
   const activeRoutines = rawRoutines.map((r) => {
-    if (r.name === DAILY_SUMMARY_NAME) {
+    const isDaily =
+      r.name === DAILY_SUMMARY_NAME ||
+      (r.output_format.includes("Daily Summary") && !r.output_format.includes("EXECUTIVE SUMMARY"));
+    if (isDaily) {
       return { ...r, instructions: DAILY_SUMMARY_INSTRUCTIONS, output_format: DAILY_SUMMARY_OUTPUT_FORMAT };
     }
     return r;
   });
-  // Best-effort DB sync so the edit form reflects the same values.
-  const staleRoutine = rawRoutines.find((r) => r.name === DAILY_SUMMARY_NAME);
+  // Best-effort DB sync so the edit form stays current.
+  const staleRoutine = rawRoutines.find(
+    (r) =>
+      r.name === DAILY_SUMMARY_NAME ||
+      (r.output_format.includes("Daily Summary") && !r.output_format.includes("EXECUTIVE SUMMARY"))
+  );
   if (staleRoutine) {
     d1Execute(
       "UPDATE routines SET instructions = ?, output_format = ?, updated_at = ? WHERE id = ?",

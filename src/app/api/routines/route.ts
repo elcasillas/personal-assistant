@@ -68,13 +68,17 @@ export async function GET() {
     [user.id]
   );
 
-  // Always sync the default routine to canonical defaults on load.
-  const defaultRow = rows.find((r) => r.name === DEFAULT_ROUTINE.name);
-  if (defaultRow) {
+  // Upgrade any daily summary routine that still has the old format.
+  const staleRow = rows.find(
+    (r) =>
+      r.name === DEFAULT_ROUTINE.name ||
+      (r.output_format.includes("Daily Summary") && !r.output_format.includes("EXECUTIVE SUMMARY"))
+  );
+  if (staleRow) {
     const now = new Date().toISOString();
     await d1Execute(
       "UPDATE routines SET instructions = ?, output_format = ?, updated_at = ? WHERE id = ?",
-      [DEFAULT_ROUTINE.instructions, DEFAULT_ROUTINE.outputFormat, now, defaultRow.id]
+      [DEFAULT_ROUTINE.instructions, DEFAULT_ROUTINE.outputFormat, now, staleRow.id]
     );
     rows = await d1Query<RoutineRow>(
       "SELECT * FROM routines WHERE user_id = ? ORDER BY created_at ASC",
