@@ -1,6 +1,11 @@
 import OpenAI from "openai";
 import { v4 as uuidv4 } from "uuid";
 import { d1Query, d1Execute } from "@/lib/d1";
+import {
+  DAILY_SUMMARY_NAME,
+  DAILY_SUMMARY_INSTRUCTIONS,
+  DAILY_SUMMARY_OUTPUT_FORMAT,
+} from "@/lib/routine-defaults";
 
 export const dynamic = "force-dynamic";
 
@@ -330,7 +335,7 @@ export async function POST(req: Request) {
     ? "SELECT id, name, trigger_phrases, instructions, output_format FROM routines WHERE user_id = ? AND active = 1 ORDER BY created_at ASC"
     : null;
 
-  const [tasks, notes, followupItems, activeRoutines] = await Promise.all([
+  const [tasks, notes, followupItems, rawRoutines] = await Promise.all([
     d1Query(tasksSql, userId ? [userId] : []),
     d1Query("SELECT id, title, content, tags FROM notes ORDER BY updated_at DESC LIMIT 20"),
     followupItemsSql
@@ -340,6 +345,22 @@ export async function POST(req: Request) {
       ? d1Query<{ id: string; name: string; trigger_phrases: string; instructions: string; output_format: string }>(routinesSql, [userId!])
       : Promise.resolve([] as { id: string; name: string; trigger_phrases: string; instructions: string; output_format: string }[]),
   ]);
+
+  // Always sync daily summary to canonical defaults so the AI uses the current format.
+  const activeRoutines = rawRoutines.map((r) => {
+    if (r.name === DAILY_SUMMARY_NAME) {
+      return { ...r, instructions: DAILY_SUMMARY_INSTRUCTIONS, output_format: DAILY_SUMMARY_OUTPUT_FORMAT };
+    }
+    return r;
+  });
+  // Best-effort DB sync so the edit form reflects the same values.
+  const staleRoutine = rawRoutines.find((r) => r.name === DAILY_SUMMARY_NAME);
+  if (staleRoutine) {
+    d1Execute(
+      "UPDATE routines SET instructions = ?, output_format = ?, updated_at = ? WHERE id = ?",
+      [DAILY_SUMMARY_INSTRUCTIONS, DAILY_SUMMARY_OUTPUT_FORMAT, new Date().toISOString(), staleRoutine.id]
+    ).catch(() => { /* non-blocking */ });
+  }
 
   const followupGroups = Array.from(
     new Map(
