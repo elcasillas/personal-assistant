@@ -32,7 +32,7 @@ export async function putWorkerSchedules(crons: string[]): Promise<void> {
     {
       method: "PUT",
       headers: cfHeaders(),
-      body: JSON.stringify({ schedules: crons.map((cron) => ({ cron })) }),
+      body: JSON.stringify(crons.map((cron) => ({ cron }))),
     }
   );
   if (!res.ok) {
