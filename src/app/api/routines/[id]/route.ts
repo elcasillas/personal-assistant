@@ -37,6 +37,19 @@ function parseRoutine(row: RoutineRow) {
   };
 }
 
+export async function GET(_req: Request, { params }: { params: Promise<{ id: string }> }) {
+  const user = getSessionFromHeaders(await headers());
+  if (!user) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+
+  const { id } = await params;
+  const rows = await d1Query<RoutineRow>(
+    "SELECT * FROM routines WHERE id = ? AND user_id = ?",
+    [id, user.id]
+  );
+  if (rows.length === 0) return NextResponse.json({ error: "Not found" }, { status: 404 });
+  return NextResponse.json(parseRoutine(rows[0]));
+}
+
 export async function PATCH(req: Request, { params }: { params: Promise<{ id: string }> }) {
   const user = getSessionFromHeaders(await headers());
   if (!user) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
