@@ -1,0 +1,23 @@
+name: Daily Summary Routine
+
+on:
+  schedule:
+    # 12:00 UTC = 7:00 AM EST (UTC-5) | 8:00 AM EDT (UTC-4) during daylight saving
+    - cron: '0 12 * * *'
+  workflow_dispatch: # allow manual trigger from GitHub Actions UI
+
+jobs:
+  run-daily-summary:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Trigger Daily Due and Overdue Summary
+        run: |
+          response=$(curl -s -o /dev/null -w "%{http_code}" \
+            -X POST "${{ secrets.APP_URL }}/api/cron/daily-summary" \
+            -H "Authorization: Bearer ${{ secrets.CRON_SECRET }}" \
+            -H "Content-Type: application/json")
+          echo "Response status: $response"
+          if [ "$response" != "200" ]; then
+            echo "Cron run failed with status $response"
+            exit 1
+          fi

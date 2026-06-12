@@ -30,22 +30,26 @@ Important behavior:
 Due Today
 
 Tasks
-- [Priority] [Task title] — Group: [group] — Status: [status]
+- [Task title] — Group: [group] — Status: [status]
   Notes: [brief note]
+  Priority: [Priority]
 
 Follow-ups
-- [Priority] [Subject] — Group: [group] — Status: [status]
+- [Subject] — Group: [group] — Status: [status]
   Notes: [brief note]
+  Priority: [Priority]
 
 Overdue / Late
 
 Tasks
-- [Priority] [Task title] — Due: [date] — Group: [group] — Status: [status]
+- [Task title] — Due: [date] — Group: [group] — Status: [status]
   Notes: [brief note]
+  Priority: [Priority]
 
 Follow-ups
-- [Priority] [Subject] — Due: [date] — Group: [group] — Status: [status]
+- [Subject] — Due: [date] — Group: [group] — Status: [status]
   Notes: [brief note]
+  Priority: [Priority]
 
 If nothing is due or overdue, respond with: "You have no tasks or follow-ups due today or overdue."`,
 };
@@ -90,6 +94,24 @@ export async function GET() {
     "SELECT * FROM routines WHERE user_id = ? ORDER BY created_at ASC",
     [user.id]
   );
+
+  // Auto-migrate: keep the default routine's content in sync with DEFAULT_ROUTINE
+  const defaultRow = rows.find((r) => r.name === DEFAULT_ROUTINE.name);
+  if (defaultRow) {
+    const instructionsChanged = defaultRow.instructions !== DEFAULT_ROUTINE.instructions;
+    const outputFormatChanged = defaultRow.output_format !== DEFAULT_ROUTINE.outputFormat;
+    if (instructionsChanged || outputFormatChanged) {
+      const now = new Date().toISOString();
+      await d1Execute(
+        "UPDATE routines SET instructions = ?, output_format = ?, updated_at = ? WHERE id = ?",
+        [DEFAULT_ROUTINE.instructions, DEFAULT_ROUTINE.outputFormat, now, defaultRow.id]
+      );
+      rows = await d1Query<RoutineRow>(
+        "SELECT * FROM routines WHERE user_id = ? ORDER BY created_at ASC",
+        [user.id]
+      );
+    }
+  }
 
   // Auto-seed default routine on first load
   if (rows.length === 0) {
